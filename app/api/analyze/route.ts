@@ -1,18 +1,10 @@
-import { env } from "cloudflare:workers";
 import { createPlan, requestSchema } from "@/lib/agent";
+import { modelConfig as config } from "@/lib/model-config";
 export const dynamic = "force-dynamic";
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
 };
-function config() {
-  const bindings = env as unknown as Record<string, string | undefined>;
-  return {
-    key: bindings.DATA_MODEL_API_KEY || process.env.DATA_MODEL_API_KEY,
-    url: bindings.DATA_MODEL_URL || process.env.DATA_MODEL_URL,
-    model: bindings.DATA_MODEL_NAME || process.env.DATA_MODEL_NAME,
-  };
-}
 export async function GET() {
   const c = config();
   return Response.json(
@@ -59,7 +51,7 @@ export async function POST(request: Request) {
           payload.profile,
           config(),
           fetch,
-          { previousPlan: payload.previousPlan },
+          { previousPlan: payload.previousPlan, signal: request.signal },
         );
         send("step", { step: "validation", label: "校验字段、指标和聚合权限" });
         send("result", result);

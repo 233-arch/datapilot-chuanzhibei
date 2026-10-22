@@ -20,6 +20,9 @@ const oversized = await fetch(`${base}/api/analyze`, {
 });
 assert.equal(oversized.status, 413);
 if (mode === "demo") {
+  const health = await fetch(`${base}/api/model-health`, {method:"POST",signal:timeout()});
+  assert.equal(health.status,409);
+  assert.equal((await health.json()).ok,false);
   const profile = {
     rowCount: 3,
     columnCount: 2,

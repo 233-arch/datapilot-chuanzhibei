@@ -103,6 +103,8 @@ import {
   validatePlan,
 } from "@/lib/data-engine";
 import { readWorkspace, writeWorkspace } from "@/lib/local-store";
+import { explorationTasks, proposeAnalysis, planKey, recordJourney, restoreJourney, type JourneyState, type ExplorationTask } from "@/lib/copilot";
+import { ExplorationNavigator, PlanReview, AnalysisJourney } from "@/components/exploration/copilot";
 import { type PinnedInsight, evidenceRows } from "@/lib/exploration";
 import { FilterBar } from "@/components/exploration/filter-bar";
 import {
@@ -181,7 +183,9 @@ type Entry = {
   result: AnalysisResult;
   mode: "model" | "demo";
   retrieved: string[];
+  origin?: "model" | "demo" | "navigator";
 };
+type Proposal = Omit<Entry, "id"> & { basis: string; origin: "model" | "demo" | "navigator" };
 type Tab = "overview" | "preview" | "quality" | "lab";
 type View = "workspace" | "datasets" | "reports";
 type Dialog =
@@ -522,6 +526,12 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [assistant, setAssistant] = useState(true);
   const [mobileChat, setMobileChat] = useState(false);
+  const [assistantTab, setAssistantTab] = useState<"chat" | "navigator">("chat");
+  const [previewFirst, setPreviewFirst] = useState(true);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [journey, setJourney] = useState<JourneyState>({ datasetId: initialDataset.id, steps: [], cursor: -1 });
+  const [replaying, setReplaying] = useState(false);
+  const [modelHealth, setModelHealth] = useState<{busy:boolean; ok?:boolean; message:string}>({busy:false,message:""});
   const [showSQL, setShowSQL] = useState(false);
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -538,8 +548,10 @@ export default function Home() {
   const fileInput = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const chatBottom = useRef<HTMLDivElement>(null);
+  const chatScroll = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const requestGeneration = useRef(0);
+  const restoredPlan = useRef<string | null>(null);
   const profile = useMemo(
     () => enrichProfile(profileDataset(dataset), dictionary),
     [dataset, dictionary],
@@ -562,6 +574,8 @@ export default function Home() {
       });
     }
   }, [dataset, profile, scopedPlan]);
+  const proposalBasis = useMemo(() => JSON.stringify({ id: dataset.id, plan: scopedPlan, dictionary }), [dataset.id, scopedPlan, dictionary]);
+  const navigationTasks = useMemo(() => explorationTasks(dataset, profile, scopedPlan), [dataset, profile, scopedPlan]);
   const dimensions = profile.fields.filter((f) => f.type !== "number");
   const metrics = profile.fields.filter((f) => f.type === "number");
   const secondaryPlan = useMemo(() => {
@@ -681,6 +695,7 @@ export default function Home() {
       filters?: FilterClause[];
       plan?: Plan;
       dictionary?: Dictionary;
+      journey?: JourneyState;
     }>()
       .then((value) => {
         if (
@@ -690,6 +705,7 @@ export default function Home() {
         ) {
           const p = profileDataset(value.dataset);
           setDataset(value.dataset);
+          setJourney(restoreJourney(value.journey, value.dataset.id, p));
           setActivePlan(defaultPlan(p));
           setEntries(value.entries || []);
           try {
@@ -756,12 +772,33 @@ export default function Home() {
         filters: scopeFilters,
         plan: activePlan,
         dictionary,
+        journey,
       })
         .then(() => setSaved(true))
         .catch(() => setSaved(false));
     }, 300);
     return () => clearTimeout(id);
-  }, [dataset, entries, pins, scopeFilters, activePlan, dictionary, ready]);
+  }, [dataset, entries, pins, scopeFilters, activePlan, dictionary, journey, ready]);
+  useEffect(() => {
+    if (!ready) return;
+    setProposal(null);
+    const key = planKey(scopedPlan);
+    if (restoredPlan.current === key) {
+      restoredPlan.current = null;
+      return;
+    }
+    restoredPlan.current = null;
+    setReplaying(false);
+    setJourney(previous => recordJourney(previous, dataset.id, scopedPlan, profile, crypto.randomUUID(), new Date().toISOString()));
+  }, [ready, scopedPlan, dataset.id]);
+  useEffect(() => { setProposal(null); }, [proposalBasis]);
+  useEffect(() => { if (assistantTab === "navigator") chatScroll.current?.scrollTo({top:0,behavior:"auto"}); }, [assistantTab]);
+  useEffect(() => {
+    if (!replaying) return;
+    if (journey.cursor >= journey.steps.length - 1) { setReplaying(false); return; }
+    const timer = setTimeout(() => restoreStep(journey.cursor + 1, true), 2400);
+    return () => clearTimeout(timer);
+  }, [replaying, journey]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 4000);
@@ -769,15 +806,17 @@ export default function Home() {
   }, [toast]);
   useEffect(() => {
     chatBottom.current?.scrollIntoView({
-      behavior: "smooth",
+      behavior: proposal ? "auto" : "smooth",
       block: "nearest",
     });
-  }, [entries, busy, steps]);
+  }, [entries, busy, steps, proposal]);
   function setNewDataset(next: Dataset) {
     requestGeneration.current++;
     abort.current?.abort();
     setBusy(false);
     setSteps([]);
+    setProposal(null);
+    setReplaying(false);
     setDataset(next);
     setActivePlan(defaultPlan(profileDataset(next)));
     setEntries([]);
@@ -880,6 +919,9 @@ export default function Home() {
     setQuestion("");
     setError("");
     setBusy(true);
+    setReplaying(false);
+    setProposal(null);
+    setAssistantTab("chat");
     setSteps([]);
     setAssistant(true);
     setView("workspace");
@@ -934,28 +976,10 @@ export default function Home() {
           if (type === "error") throw new Error(data.error);
           if (type === "step") setSteps((prev) => [...prev, data.label]);
           if (type === "result") {
-            const nextFilters = mergeFilters(
-              scopeFilters,
-              filtersForPlan(data.plan),
-            );
-            validateFilters(nextFilters, profile.fields);
-            const fullPlan = { ...barePlan(data.plan), filters: nextFilters };
-            const computed = executePlan(dataset, profile, fullPlan);
-            setScopeFilters(nextFilters);
-            setActivePlan(barePlan(data.plan));
-            setEntries((prev) =>
-              [
-                ...prev,
-                {
-                  id: `analysis-${Date.now()}`,
-                  question: q,
-                  plan: fullPlan,
-                  result: computed,
-                  mode: data.mode,
-                  retrieved: data.retrieved,
-                },
-              ].slice(-30),
-            );
+            const checked = proposeAnalysis(dataset, profile, scopedPlan, data.plan);
+            const next: Proposal = { question: q, ...checked, mode: data.mode === "model" ? "model" : "demo", origin: data.mode === "model" ? "model" : "demo", retrieved: data.retrieved, basis: proposalBasis };
+            if (previewFirst) setProposal(next);
+            else commitProposal(next);
             received = true;
           }
         }
@@ -1005,6 +1029,8 @@ export default function Home() {
     setBusy(false);
     setSteps([]);
     setError("");
+    setReplaying(false);
+    setProposal(null);
     setScopeFilters(filters);
     setPage(1);
   }
@@ -1014,6 +1040,55 @@ export default function Home() {
     setActivePlan(barePlan(plan));
     setView("workspace");
     setTab("overview");
+  }
+  function commitProposal(next: Proposal) {
+    if (next.basis !== proposalBasis) {
+      setProposal(null);
+      setToast("数据或分析口径已变化，请重新生成计划");
+      return;
+    }
+    validatePlan(next.plan, profile);
+    const computed = executePlan(dataset, profile, next.plan);
+    openAnalysis(next.plan);
+    setEntries(previous => [...previous, { id: crypto.randomUUID(), question: next.question, plan: next.plan, result: computed, mode: next.mode, origin: next.origin, retrieved: next.retrieved }].slice(-30));
+    setProposal(null);
+    setToast("已应用分析计划，可在探索路线中回放");
+  }
+  function previewTask(task: ExplorationTask) {
+    try {
+      const checked = proposeAnalysis(dataset, profile, scopedPlan, task.plan);
+      setProposal({ ...checked, question: task.question, mode: "demo", origin: "navigator", retrieved: [task.plan.groupBy, task.plan.metric].filter(Boolean), basis: proposalBasis });
+      setAssistant(true);
+      setAssistantTab("chat");
+      if (window.innerWidth <= 900) setMobileChat(true);
+    } catch (error) { setToast(error instanceof Error ? error.message : "无法预览此项建议"); }
+  }
+  function restoreStep(index: number, continuePlaying = false) {
+    const step = journey.steps[index];
+    if (!step || journey.datasetId !== dataset.id) return;
+    validatePlan(step.plan, profile);
+    requestGeneration.current++;
+    abort.current?.abort();
+    setBusy(false);
+    setSteps([]);
+    setProposal(null);
+    setError("");
+    restoredPlan.current = planKey(step.plan);
+    setScopeFilters(filtersForPlan(step.plan));
+    setActivePlan(barePlan(step.plan));
+    setJourney(previous => ({ ...previous, cursor: index }));
+    setReplaying(continuePlaying);
+    setView("workspace");
+    setTab("overview");
+    setPage(1);
+  }
+  async function checkModelHealth() {
+    setModelHealth({busy:true,message:"正在用固定样本验证模型工具调用…"});
+    try {
+      const response = await fetch("/api/model-health", {method:"POST",signal:AbortSignal.timeout(50000)});
+      const health = await response.json() as {ok?:boolean;message?:string};
+      setModelHealth({busy:false,ok:response.ok && health.ok === true,message:health.message || "验证未通过，请检查服务端配置。"});
+    } catch { setModelHealth({busy:false,ok:false,message:"连接超时或服务暂不可用，请稍后重试。"}); }
   }
   function pinCurrent() {
     if (pins.length >= 12) {
@@ -1091,7 +1166,7 @@ export default function Home() {
         <div className="workspace-picker">
           <span className="workspace-avatar">DP</span>
           <div>
-            <strong>我的分析空间</strong>
+            <strong>疯狂星期四</strong>
             <small>个人工作空间</small>
           </div>
           <ChevronDown size={14} />
@@ -1345,6 +1420,10 @@ export default function Home() {
                   count={scopeDataset.rows.length}
                   onChange={changeScope}
                 />
+                <AnalysisJourney state={journey.datasetId === dataset.id ? journey : {datasetId:dataset.id,steps:[],cursor:-1}} playing={replaying}
+                  onRestore={restoreStep}
+                  onPlay={() => { if (journey.cursor >= journey.steps.length - 1) restoreStep(0, true); else setReplaying(true); }}
+                  onPause={() => setReplaying(false)} />
                 <div className="workspace-tabs">
                   <div role="tablist" aria-label="数据分析视图">
                     <button
@@ -2318,7 +2397,7 @@ export default function Home() {
                   <small>
                     <span />{" "}
                     {mode === "model"
-                      ? "模型已连接"
+                      ? "模型已配置 · 可在设置中验证"
                       : "演示模式 · 本地意图匹配"}
                   </small>
                 </div>
@@ -2340,7 +2419,12 @@ export default function Home() {
                 <span>{dataset.name}</span>
                 <Check size={13} />
               </div>
-              <div className="chat-scroll">
+              <div className="assistant-tabs" role="tablist" aria-label="助手工作模式">
+                <button role="tab" aria-selected={assistantTab === "chat"} onClick={() => setAssistantTab("chat")}><MessageSquare size={13}/>对话助手</button>
+                <button role="tab" aria-selected={assistantTab === "navigator"} onClick={() => setAssistantTab("navigator")}><WandSparkles size={13}/>探索导航</button>
+              </div>
+              <div className="chat-scroll" ref={chatScroll}>
+                {assistantTab === "navigator" ? <ExplorationNavigator tasks={navigationTasks} count={scopeDataset.rows.length} disabled={busy} onPreview={previewTask} onAsk={(question) => void ask(question)}/> : <>
                 <div className="assistant-intro">
                   <div className="intro-orbit">
                     <Brand />
@@ -2392,7 +2476,7 @@ export default function Home() {
                         <Brand small />
                         <span>数问</span>
                         <small>
-                          {entry.mode === "model" ? "模型规划" : "演示规划"}
+                          {entry.origin === "navigator" ? "数据导航" : entry.mode === "model" ? "模型规划" : "演示规划"}
                         </small>
                       </div>
                       <p>{entry.result.summary}</p>
@@ -2461,6 +2545,8 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
+                </>}
+                {proposal && <PlanReview question={proposal.question} plan={proposal.plan} result={proposal.result} mode={proposal.origin} onApply={() => commitProposal(proposal)} onDiscard={() => {setProposal(null);setToast("已放弃计划，工作台保持原口径");}}/>}
                 {busy && (
                   <div className="analysis-progress" role="status">
                     <div>
@@ -2503,6 +2589,7 @@ export default function Home() {
                 <div ref={chatBottom} />
               </div>
               <div className="composer-area">
+                <label className="preview-preference"><input type="checkbox" checked={previewFirst} onChange={(event) => setPreviewFirst(event.target.checked)}/>先确认分析计划</label>
                 <div className="composer">
                   <textarea
                     ref={input}
@@ -2852,6 +2939,11 @@ export default function Home() {
               <span>兼容 Chat Completions 的服务地址</span>
               <code>DATA_MODEL_NAME</code>
               <span>默认 deepseek-flash，可按服务商调整</span>
+            </div>
+            <div className="model-health">
+              <button className="button subtle" disabled={mode !== "model" || modelHealth.busy} onClick={() => void checkModelHealth()}>{modelHealth.busy ? <LoaderCircle size={14} className="spin"/> : <ShieldCheck size={14}/>}验证真实模型连接</button>
+              <p>使用 2 行固定合成样本验证工具调用，会消耗少量模型额度；不会发送当前数据。</p>
+              {modelHealth.message && <div role="status" className={`model-health-result ${modelHealth.ok === false ? "failed" : ""}`}>{modelHealth.message}</div>}
             </div>
           </div>
           <div className="settings-section">

@@ -408,6 +408,12 @@ export function validateFilters(
       !fields.some((f) => f.name === filter.field && f.type === "date")
     )
       throw new Error("时间分桶筛选只能用于日期字段。");
+    if (filter.operator === "gte" || filter.operator === "lte") {
+      const field = fields.find(f => f.name === filter.field)!;
+      if ((field.type === "number" && numeric(filter.value) === null) ||
+          (field.type === "date" && !isDate(filter.value)) || field.type === "text")
+        throw new Error("范围筛选需要有效的数值或日期。");
+    }
   }
 }
 export function mergeFilters(...lists: FilterClause[][]): FilterClause[] {

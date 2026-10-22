@@ -177,7 +177,7 @@ export async function createPlan(
   profile: Profile,
   config: { key?: string; url?: string; model?: string },
   fetcher: typeof fetch = fetch,
-  context?: { previousPlan?: Plan },
+  context?: { previousPlan?: Plan; signal?: AbortSignal },
 ): Promise<{ plan: Plan; mode: "model" | "demo"; retrieved: string[] }> {
   const retrieved = retrieveFields(question, profile);
   const contextNames = context?.previousPlan
@@ -229,9 +229,8 @@ export async function createPlan(
   const base = (config.url || "https://api.deepseek.com").replace(/\/$/, "");
   const url = new URL(base);
   if (
-    url.protocol !== "https:" &&
-    url.hostname !== "localhost" &&
-    url.hostname !== "127.0.0.1"
+    (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))) ||
+    url.username || url.password || url.search || url.hash
   )
     throw new Error("模型服务必须使用 HTTPS。");
   const response = await fetcher(`${base}/chat/completions`, {
@@ -240,7 +239,7 @@ export async function createPlan(
       "Content-Type": "application/json",
       Authorization: `Bearer ${config.key}`,
     },
-    signal: AbortSignal.timeout(45000),
+    signal: context?.signal ? AbortSignal.any([context.signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
     body: JSON.stringify({
       model: config.model || "deepseek-flash",
       messages: [

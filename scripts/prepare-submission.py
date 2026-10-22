@@ -34,7 +34,8 @@ for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation
 audit_path = OUT / "submission-audit.json"
 audit = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.exists() else {}
 remaining = [item["id"] for item in audit.get("checks", []) if item.get("status") in ["blocked", "review"]]
-manifest = {"version": "0.3.0", "commit": commit, "isFinalSubmission": False, "remainingChecks": remaining, "notice": "这是审阅准备包。尚未完成的材料以当前提交检查结果为准，不能冒充最终提交。", "files": []}
+version = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))["version"]
+manifest = {"version": version, "commit": commit, "isFinalSubmission": False, "remainingChecks": remaining, "notice": "这是审阅准备包。尚未完成的材料以当前提交检查结果为准，不能冒充最终提交。", "files": []}
 archive = OUT / "DataPilot-review-preparation.zip"
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as z:
     for src, dest in files.items():

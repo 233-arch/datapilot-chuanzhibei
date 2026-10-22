@@ -39,7 +39,7 @@ def chrome(canvas,doc):
     canvas.setStrokeColor(LINE);canvas.line(48,height-39,width-48,height-39)
     canvas.setFont('CN',8);canvas.setFillColor(GRAY)
     canvas.drawString(48,height-28,'数问 DataPilot / 参赛作品技术说明')
-    canvas.drawRightString(width-48,height-28,'v0.3  |  2026-10-22')
+    canvas.drawRightString(width-48,height-28,'v0.4  |  2026-10-22')
     canvas.line(48,41,width-48,41)
     canvas.drawString(48,27,'可核验的数据探索 · 演示模式与真实模型模式明确区分')
     canvas.drawRightString(width-48,27,str(doc.page))
@@ -49,12 +49,12 @@ target=OUT/'数问DataPilot_技术说明.pdf'
 doc=SimpleDocTemplate(str(target),pagesize=A4,rightMargin=48,leftMargin=48,topMargin=59,bottomMargin=57,title='数问 DataPilot 技术说明',author='DataPilot Project',allowSplitting=True)
 story=[Spacer(1,21),p('数问 DataPilot','title'),p('让数据，回答问题。','subtitle'),p('AI WEB 网页开发挑战赛 · AI 数据分析与可视化方向','small'),Spacer(1,14)]
 story.append(p('从一份 CSV 到一次可核验的探索：自然语言生成分析计划，确定性引擎计算统计结果，图表与报告提供来源和口径。'))
-shot=ROOT/'docs/screenshots/desktop-workspace.png'
+shot=ROOT/'docs/screenshots/v4-navigator-desktop.png'
 if shot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(shot).size
     story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：桌面工作台实际运行界面。截图明确标示演示模式，统计数字来自合成样本实际计算。','small')])
-story.extend([Spacer(1,12),p('交付范围','h3'),p('上传、质量检查、联动与下钻、异常、情景推演、收藏对比、字典、连续追问、配置迁移和离线报告。已建立GitHub公开评审仓库，正式提交仍需团队信息、真实模型实测和MP4。','small'),PageBreak()])
+story.extend([Spacer(1,12),p('交付范围','h3'),p('疯狂星期四：上传、质量检查、联动、下钻、异常、情景推演、收藏、字典、连续追问、配置迁移和离线报告。新增探索导航、计划确认与路线回放。已建立公开仓库；学校队员、真实模型实测与MP4仍待补齐。','small'),PageBreak()])
 
 lines=(ROOT/'docs/技术文档.md').read_text(encoding='utf-8').splitlines()
 i=0

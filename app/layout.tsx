@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./exploration.css";
 import "./delivery.css";
+import "./copilot.css";
 
 export const metadata: Metadata = {
   title: "数问 DataPilot · 让数据回答问题",
