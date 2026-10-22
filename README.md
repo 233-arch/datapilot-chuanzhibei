@@ -18,7 +18,24 @@
 
 学校、组别、队名、队员及指导老师尚未提供，不能据此宣称满足正式提交条件。请按 `submission/team.example.json` 在本机填写 `submission/team.json`，并把应公开的真实团队信息补充到本节。组别、同校身份和参赛资格由参赛者核对。
 
-截至 2026-10-22，尚缺真实模型实测、GitHub/Gitee 评审仓库、团队信息、实际 5-8 分钟 1080p 普通话 MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+公开评审仓库：[233-arch/datapilot-chuanzhibei](https://github.com/233-arch/datapilot-chuanzhibei)，默认分支 `main`，保留完整真实开发历史。评委可直接访问源码、环境模板和 `output/pdf/` 中的技术说明。
+
+截至 2026-10-22，仍缺真实模型实测、团队信息、实际 5-8 分钟 1080p 普通话 MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+
+## 评审入口与复现
+
+```powershell
+git clone https://github.com/233-arch/datapilot-chuanzhibei.git
+cd datapilot-chuanzhibei
+npm ci --include=dev --include=optional --no-audit --no-fund
+npm run dev
+```
+
+需要 Node.js >=22.13.0，推荐 Node.js 24。无密钥可运行明确标记的演示模式；真实模型在服务端配置。不要在公开仓库中填写密钥。
+
+[自动检查记录](https://github.com/233-arch/datapilot-chuanzhibei/actions) 包含类型检查、49项业务测试、7项仓库验证测试、源码及历史扫描和生产构建。实际运行结果以 Actions 页面为准；仅有工作流文件不代表远程检查已通过。
+
+`npm run verify:repository` 会匿名核对公开仓库的默认分支、当前提交与必要材料，并生成 `outputs/repository-access.json`。只有验证通过才更新本机评审记录；仅填写 URL 与时间不能通过提交检查。
 
 ## v0.3 从调研到改进
 

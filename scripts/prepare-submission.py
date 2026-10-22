@@ -27,11 +27,14 @@ files = {
 }
 for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "演示脚本.md"]:
     files[ROOT / "docs" / name] = "documents/" + name
-for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "pdf-review.json"]:
+for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
     candidate = OUT / name
     if candidate.exists():
         files[candidate] = "evidence/" + name
-manifest = {"version": "0.3.0", "commit": commit, "isFinalSubmission": False, "notice": "这是审阅准备包。团队信息、GitHub/Gitee评审仓库、真实模型实测、实际MP4仍需按检查结果补齐。", "files": []}
+audit_path = OUT / "submission-audit.json"
+audit = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.exists() else {}
+remaining = [item["id"] for item in audit.get("checks", []) if item.get("status") in ["blocked", "review"]]
+manifest = {"version": "0.3.0", "commit": commit, "isFinalSubmission": False, "remainingChecks": remaining, "notice": "这是审阅准备包。尚未完成的材料以当前提交检查结果为准，不能冒充最终提交。", "files": []}
 archive = OUT / "DataPilot-review-preparation.zip"
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as z:
     for src, dest in files.items():

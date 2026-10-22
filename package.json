@@ -18,7 +18,10 @@
     "test:exploration": "node scripts/test-exploration.mjs",
     "test:kit": "node scripts/test-workspace-kit.mjs",
     "eval:model": "node scripts/eval-model.mjs",
-    "check:submission": "node scripts/check-submission.mjs"
+    "check:submission": "node scripts/check-submission.mjs",
+    "check:source": "node scripts/scan-review-source.mjs",
+    "test:repository": "node scripts/test-review-repository.mjs",
+    "verify:repository": "node scripts/verify-review-repository.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

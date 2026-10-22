@@ -54,7 +54,7 @@ if shot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(shot).size
     story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：桌面工作台实际运行界面。截图明确标示演示模式，统计数字来自合成样本实际计算。','small')])
-story.extend([Spacer(1,12),p('交付范围','h3'),p('上传、质量检查、联动与下钻、异常、情景推演、收藏对比、字典、连续追问、配置迁移和离线报告。正式提交仍需团队信息、GitHub/Gitee评审仓库、真实模型实测和MP4。','small'),PageBreak()])
+story.extend([Spacer(1,12),p('交付范围','h3'),p('上传、质量检查、联动与下钻、异常、情景推演、收藏对比、字典、连续追问、配置迁移和离线报告。已建立GitHub公开评审仓库，正式提交仍需团队信息、真实模型实测和MP4。','small'),PageBreak()])
 
 lines=(ROOT/'docs/技术文档.md').read_text(encoding='utf-8').splitlines()
 i=0

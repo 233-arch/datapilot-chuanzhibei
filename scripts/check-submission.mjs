@@ -28,14 +28,21 @@ add(
   "需真实学校、组别、队名、同校1-3名队员、最多2名指导老师；程序只能检查格式，同校与资格由参赛者确认。",
 );
 const review = read("submission/review.json");
+const repositoryProof = read("outputs/repository-access.json");
+const localHead = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
 add(
   "reviewRepository",
-  /^https:\/\/(github\.com|gitee\.com)\/[^/]+\/[^/]+\/?$/.test(
-    review?.repositoryUrl || "",
-  ) && review.repositoryAccessVerifiedAt
+  review?.repositoryUrl &&
+    repositoryProof?.format === "datapilot-repository-proof" &&
+    repositoryProof.repositoryUrl === review.repositoryUrl &&
+    repositoryProof.visibility === "public" &&
+    repositoryProof.anonymousApi === true &&
+    repositoryProof.anonymousGit === true &&
+    repositoryProof.headCommit === localHead.stdout?.trim() &&
+    repositoryProof.verifiedAt === review.repositoryAccessVerifiedAt
     ? "pass"
     : "blocked",
-  "官网要求 GitHub/Gitee Public 或评审权限；Sites 源码库与 ZIP 不能替代。需要实际验证评审访问并记录时间。",
+  "本项目选择GitHub公开评审；需匿名API、匿名Git、关键材料和当前提交一致的验证记录。仅填写URL与时间不能通过。",
 );
 const model = read("outputs/model-evaluation.json");
 const modelSourceFingerprint = createHash("sha256")
