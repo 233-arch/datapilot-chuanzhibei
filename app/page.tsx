@@ -57,6 +57,9 @@ import {
   AlertTriangle,
   RotateCcw,
   MousePointer2,
+  Bookmark,
+  FlaskConical,
+  FileSearch,
 } from "lucide-react";
 import {
   AreaChart,
@@ -88,8 +91,22 @@ import {
   cleanDataset,
   reportMarkdown,
   LIMITS,
+  type FilterClause,
+  mergeFilters,
+  filtersForPlan,
+  filterDataset,
+  groupFilter,
+  validateFilters,
+  validatePlan,
 } from "@/lib/data-engine";
 import { readWorkspace, writeWorkspace } from "@/lib/local-store";
+import { type PinnedInsight, evidenceRows } from "@/lib/exploration";
+import { FilterBar } from "@/components/exploration/filter-bar";
+import { ExplorationLab } from "@/components/exploration/lab";
+import {
+  EvidenceView,
+  type EvidenceSelection,
+} from "@/components/exploration/evidence";
 type Entry = {
   id: string;
   question: string;
@@ -98,9 +115,9 @@ type Entry = {
   mode: "model" | "demo";
   retrieved: string[];
 };
-type Tab = "overview" | "preview" | "quality";
+type Tab = "overview" | "preview" | "quality" | "lab";
 type View = "workspace" | "datasets" | "reports";
-type Dialog = "upload" | "help" | "settings" | "clean" | null;
+type Dialog = "upload" | "help" | "settings" | "clean" | "evidence" | null;
 const colors = [
   "#118a74",
   "#6cba9d",
@@ -110,6 +127,9 @@ const colors = [
   "#b2a0c7",
 ];
 const initialDataset = makeDemo();
+function barePlan(plan: Plan): Plan {
+  return { ...plan, filter: undefined, filters: undefined };
+}
 function download(
   name: string,
   text: string,
@@ -138,10 +158,12 @@ function DataChart({
   plan,
   result,
   small = false,
+  onPointClick,
 }: {
   plan: Plan;
   result: AnalysisResult;
   small?: boolean;
+  onPointClick?: (name: string) => void;
 }) {
   if (!result.points.length)
     return (
@@ -210,6 +232,10 @@ function DataChart({
               outerRadius={small ? 72 : 92}
               paddingAngle={3}
               stroke="none"
+              onClick={(_point, index) => {
+                const point = result.points[index];
+                if (point) onPointClick?.(point.name);
+              }}
             >
               {result.points.map((_, i) => (
                 <PieCell key={i} fill={colors[i % colors.length]} />
@@ -300,6 +326,10 @@ function DataChart({
               radius={[4, 4, 0, 0]}
               fill="#118a74"
               isAnimationActive={false}
+              onClick={(_point, index) => {
+                const point = result.points[index];
+                if (point) onPointClick?.(point.name);
+              }}
             >
               {result.points.map((_, i) => (
                 <PieCell
@@ -319,11 +349,13 @@ function Modal({
   subtitle,
   children,
   onClose,
+  className = "",
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -365,7 +397,7 @@ function Modal({
       }}
     >
       <div
-        className="modal"
+        className={`modal ${className}`}
         ref={panel}
         tabIndex={-1}
         role="dialog"
@@ -389,6 +421,12 @@ function Modal({
 export default function Home() {
   const [dataset, setDataset] = useState<Dataset>(initialDataset);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [scopeFilters, setScopeFilters] = useState<FilterClause[]>([]);
+  const [pins, setPins] = useState<PinnedInsight[]>([]);
+  const [evidence, setEvidence] = useState<EvidenceSelection | null>(null);
+  const [evidenceFilter, setEvidenceFilter] = useState<FilterClause | null>(
+    null,
+  );
   const [view, setView] = useState<View>("workspace");
   const [tab, setTab] = useState<Tab>("overview");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -417,19 +455,32 @@ export default function Home() {
   });
   const [undo, setUndo] = useState<Dataset | null>(null);
   const [undoEntries, setUndoEntries] = useState<Entry[]>([]);
+  const [undoPins, setUndoPins] = useState<PinnedInsight[]>([]);
+  const [undoFilters, setUndoFilters] = useState<FilterClause[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const chatBottom = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const requestGeneration = useRef(0);
   const profile = useMemo(() => profileDataset(dataset), [dataset]);
+  const scopeDataset = useMemo(
+    () => filterDataset(dataset, scopeFilters),
+    [dataset, scopeFilters],
+  );
+  const scopedPlan = useMemo(
+    () => ({ ...activePlan, filters: scopeFilters, filter: undefined }),
+    [activePlan, scopeFilters],
+  );
   const result = useMemo(() => {
     try {
-      return executePlan(dataset, profile, activePlan);
+      return executePlan(dataset, profile, scopedPlan);
     } catch {
-      return executePlan(dataset, profile, defaultPlan(profile));
+      return executePlan(dataset, profile, {
+        ...defaultPlan(profile),
+        filters: scopeFilters,
+      });
     }
-  }, [dataset, profile, activePlan]);
+  }, [dataset, profile, scopedPlan]);
   const dimensions = profile.fields.filter((f) => f.type !== "number");
   const metrics = profile.fields.filter((f) => f.type === "number");
   const secondaryPlan = useMemo(() => {
@@ -451,8 +502,12 @@ export default function Home() {
     };
   }, [profile]);
   const secondary = useMemo(
-    () => executePlan(dataset, profile, secondaryPlan),
-    [dataset, profile, secondaryPlan],
+    () =>
+      executePlan(dataset, profile, {
+        ...secondaryPlan,
+        filters: scopeFilters,
+      }),
+    [dataset, profile, secondaryPlan, scopeFilters],
   );
   const categoryPlan = useMemo(() => {
     const field =
@@ -478,27 +533,27 @@ export default function Home() {
     };
   }, [profile, secondaryPlan.groupBy]);
   const category = useMemo(
-    () => executePlan(dataset, profile, categoryPlan),
-    [dataset, profile, categoryPlan],
+    () =>
+      executePlan(dataset, profile, { ...categoryPlan, filters: scopeFilters }),
+    [dataset, profile, categoryPlan, scopeFilters],
   );
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return q
-      ? dataset.rows.filter((r) =>
+      ? scopeDataset.rows.filter((r) =>
           dataset.columns.some((c) =>
             String(r[c] ?? "")
               .toLowerCase()
               .includes(q),
           ),
         )
-      : dataset.rows;
-  }, [dataset, search]);
+      : scopeDataset.rows;
+  }, [scopeDataset, search]);
   const metricSparkPath = useMemo(() => {
-    const values = executePlan(
-      dataset,
-      profile,
-      defaultPlan(profile),
-    ).points.map((p) => p.value);
+    const values = executePlan(dataset, profile, {
+      ...defaultPlan(profile),
+      filters: scopeFilters,
+    }).points.map((p) => p.value);
     const min = Math.min(...values),
       max = Math.max(...values);
     return values
@@ -510,10 +565,10 @@ export default function Home() {
           (25 - (22 * (v - min)) / Math.max(1, max - min)).toFixed(1),
       )
       .join(" ");
-  }, [dataset, profile]);
+  }, [dataset, profile, scopeFilters]);
   const sumField = (field?: string) =>
     field
-      ? dataset.rows.reduce((sum, r) => sum + (numeric(r[field]) ?? 0), 0)
+      ? scopeDataset.rows.reduce((sum, r) => sum + (numeric(r[field]) ?? 0), 0)
       : 0;
   const primaryMetric =
     metrics.find((f) => /销售额|收入|sales|revenue/i.test(f.name)) ||
@@ -538,7 +593,13 @@ export default function Home() {
   }, [profile]);
   useEffect(() => {
     let alive = true;
-    readWorkspace<{ dataset: Dataset; entries: Entry[] }>()
+    readWorkspace<{
+      dataset: Dataset;
+      entries: Entry[];
+      pins?: PinnedInsight[];
+      filters?: FilterClause[];
+      plan?: Plan;
+    }>()
       .then((value) => {
         if (
           alive &&
@@ -549,6 +610,32 @@ export default function Home() {
           setDataset(value.dataset);
           setActivePlan(defaultPlan(p));
           setEntries(value.entries || []);
+          try {
+            validateFilters(value.filters || [], p.fields);
+            setScopeFilters(value.filters || []);
+          } catch {
+            setScopeFilters([]);
+          }
+          setPins(
+            (value.pins || [])
+              .filter((pin) => {
+                try {
+                  validatePlan(pin.plan, p);
+                  return (
+                    typeof pin.name === "string" && typeof pin.note === "string"
+                  );
+                } catch {
+                  return false;
+                }
+              })
+              .slice(0, 12),
+          );
+          if (value.plan) {
+            try {
+              validatePlan(value.plan, p);
+              setActivePlan(barePlan(value.plan));
+            } catch {}
+          }
         }
       })
       .catch(() => {})
@@ -573,12 +660,18 @@ export default function Home() {
     if (!ready) return;
     setSaved(false);
     const id = setTimeout(() => {
-      writeWorkspace({ dataset, entries })
+      writeWorkspace({
+        dataset,
+        entries,
+        pins,
+        filters: scopeFilters,
+        plan: activePlan,
+      })
         .then(() => setSaved(true))
         .catch(() => setSaved(false));
     }, 300);
     return () => clearTimeout(id);
-  }, [dataset, entries, ready]);
+  }, [dataset, entries, pins, scopeFilters, activePlan, ready]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 4000);
@@ -598,6 +691,11 @@ export default function Home() {
     setDataset(next);
     setActivePlan(defaultPlan(profileDataset(next)));
     setEntries([]);
+    setScopeFilters([]);
+    setPins([]);
+    setEvidence(null);
+    setUndoPins([]);
+    setUndoFilters([]);
     setUndo(null);
     setUndoEntries([]);
     setSearch("");
@@ -633,12 +731,15 @@ export default function Home() {
   function exportReport() {
     const analyses = [
       ...entries.map(({ plan, result }) => ({ plan, result })),
-      { plan: activePlan, result },
+      { plan: scopedPlan, result },
     ];
     if (!entries.length)
       analyses.push(
-        { plan: secondaryPlan, result: secondary },
-        { plan: categoryPlan, result: category },
+        {
+          plan: { ...secondaryPlan, filters: scopeFilters },
+          result: secondary,
+        },
+        { plan: { ...categoryPlan, filters: scopeFilters }, result: category },
       );
     const unique = analyses.filter(
       (a, i) =>
@@ -656,6 +757,10 @@ export default function Home() {
   async function ask(text = question) {
     const q = text.trim();
     if (!q || busy) return;
+    if (!scopeDataset.rows.length) {
+      setError("当前筛选没有记录，请先调整或重置联动筛选。");
+      return;
+    }
     setQuestion("");
     setError("");
     setBusy(true);
@@ -671,6 +776,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: q,
+          previousPlan: scopedPlan,
           profile: {
             ...profile,
             fields: profile.fields.map((f) => ({
@@ -712,15 +818,22 @@ export default function Home() {
           if (type === "error") throw new Error(data.error);
           if (type === "step") setSteps((prev) => [...prev, data.label]);
           if (type === "result") {
-            const computed = executePlan(dataset, profile, data.plan);
-            setActivePlan(data.plan);
+            const nextFilters = mergeFilters(
+              scopeFilters,
+              filtersForPlan(data.plan),
+            );
+            validateFilters(nextFilters, profile.fields);
+            const fullPlan = { ...barePlan(data.plan), filters: nextFilters };
+            const computed = executePlan(dataset, profile, fullPlan);
+            setScopeFilters(nextFilters);
+            setActivePlan(barePlan(data.plan));
             setEntries((prev) =>
               [
                 ...prev,
                 {
                   id: `analysis-${Date.now()}`,
                   question: q,
-                  plan: data.plan,
+                  plan: fullPlan,
                   result: computed,
                   mode: data.mode,
                   retrieved: data.retrieved,
@@ -734,6 +847,7 @@ export default function Home() {
       }
       if (!received) throw new Error("分析连接中断，请重试。");
     } catch (e) {
+      if (generation !== requestGeneration.current) return;
       if ((e as Error).name !== "AbortError") {
         setError(e instanceof Error ? e.message : "分析失败，请重试。");
         setQuestion(q);
@@ -751,6 +865,10 @@ export default function Home() {
     setBusy(false);
     setUndo(dataset);
     setUndoEntries(entries);
+    setUndoPins(pins);
+    setUndoFilters(scopeFilters);
+    setPins([]);
+    setScopeFilters([]);
     const next = cleanDataset(dataset, cleanOptions);
     setDataset(next);
     setActivePlan(defaultPlan(profileDataset(next)));
@@ -763,6 +881,66 @@ export default function Home() {
   }
   function resetDemo() {
     setNewDataset(makeDemo());
+  }
+  function changeScope(filters: FilterClause[]) {
+    validateFilters(filters, profile.fields);
+    requestGeneration.current++;
+    abort.current?.abort();
+    setBusy(false);
+    setSteps([]);
+    setError("");
+    setScopeFilters(filters);
+    setPage(1);
+  }
+  function openAnalysis(plan: Plan) {
+    validatePlan(plan, profile);
+    changeScope(filtersForPlan(plan));
+    setActivePlan(barePlan(plan));
+    setView("workspace");
+    setTab("overview");
+  }
+  function pinCurrent() {
+    if (pins.length >= 12) {
+      setToast("最多收藏 12 项，请先整理已有洞察");
+      return;
+    }
+    if (
+      pins.some(
+        (pin) => JSON.stringify(pin.plan) === JSON.stringify(scopedPlan),
+      )
+    ) {
+      setToast("这项分析已在收藏中");
+      return;
+    }
+    setPins((prev) => [
+      ...prev,
+      {
+        id: `pin-${Date.now()}`,
+        name: `${activePlan.title}${scopeFilters.length ? " · 已筛选" : ""}`,
+        plan: structuredClone(scopedPlan),
+        createdAt: new Date().toISOString(),
+        note: "",
+      },
+    ]);
+    setToast("已收藏分析口径，可在创新实验室中批注和对比");
+  }
+  function inspectGroup(plan: Plan, name: string) {
+    try {
+      const selected = {
+        ...plan,
+        filters: mergeFilters(scopeFilters, filtersForPlan(plan)),
+      };
+      setEvidence({
+        title: `${plan.groupBy}：${name} · 来源明细`,
+        dataset: evidenceRows(dataset, profile, selected, name),
+        plan: selected,
+        group: name,
+      });
+      setEvidenceFilter(groupFilter(plan, name, profile));
+      setDialog("evidence");
+    } catch (e) {
+      setToast((e as Error).message);
+    }
   }
   return (
     <div
@@ -805,8 +983,15 @@ export default function Home() {
         <div className="nav-caption">工作空间</div>
         <nav aria-label="主导航">
           <button
-            className={view === "workspace" ? "nav-item active" : "nav-item"}
-            onClick={() => setView("workspace")}
+            className={
+              view === "workspace" && tab !== "lab"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() => {
+              setView("workspace");
+              setTab("overview");
+            }}
           >
             <LayoutDashboard size={18} />
             分析工作台<span className="nav-shortcut">⌘ 1</span>
@@ -817,6 +1002,23 @@ export default function Home() {
           >
             <Database size={18} />
             我的数据集<span className="nav-count">1</span>
+          </button>
+          <button
+            className={
+              view === "workspace" && tab === "lab"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() => {
+              setView("workspace");
+              setTab("lab");
+            }}
+          >
+            <FlaskConical size={18} />
+            创新实验室
+            {pins.length > 0 && (
+              <span className="nav-count">{pins.length}</span>
+            )}
           </button>
           <button
             className={view === "reports" ? "nav-item active" : "nav-item"}
@@ -871,7 +1073,7 @@ export default function Home() {
                   <button
                     key={e.id}
                     onClick={() => {
-                      setActivePlan(e.plan);
+                      openAnalysis(e.plan);
                       setView("workspace");
                       setTab("overview");
                     }}
@@ -1016,6 +1218,13 @@ export default function Home() {
             </div>
             {view === "workspace" && (
               <>
+                <FilterBar
+                  dataset={dataset}
+                  profile={profile}
+                  filters={scopeFilters}
+                  count={scopeDataset.rows.length}
+                  onChange={changeScope}
+                />
                 <div className="workspace-tabs">
                   <div role="tablist" aria-label="数据分析视图">
                     <button
@@ -1049,6 +1258,15 @@ export default function Home() {
                           .length + (profile.duplicates > 0 ? 1 : 0)}
                       </span>
                     </button>
+                    <button
+                      role="tab"
+                      aria-selected={tab === "lab"}
+                      className={tab === "lab" ? "selected" : ""}
+                      onClick={() => setTab("lab")}
+                    >
+                      <FlaskConical size={15} />
+                      创新实验室
+                    </button>
                   </div>
                   <button
                     className="text-button export-top"
@@ -1080,7 +1298,7 @@ export default function Home() {
                           {formatNumber(
                             primaryMetric
                               ? sumField(primaryMetric.name)
-                              : profile.rowCount,
+                              : scopeDataset.rows.length,
                             true,
                           )}
                         </strong>
@@ -1105,13 +1323,15 @@ export default function Home() {
                       </div>
                       <div className="metric-card">
                         <div>
-                          <span>数据记录</span>
+                          <span>
+                            {scopeFilters.length ? "筛选后记录" : "数据记录"}
+                          </span>
                           <span className="metric-icon blue">
                             <Database size={16} />
                           </span>
                         </div>
                         <strong>
-                          {formatNumber(profile.rowCount)}
+                          {formatNumber(scopeDataset.rows.length)}
                           <small className="metric-suffix">条</small>
                         </strong>
                         <p>
@@ -1220,6 +1440,14 @@ export default function Home() {
                           </p>
                         </div>
                         <div className="card-tools">
+                          <button
+                            className="icon-button pin-current"
+                            aria-label="收藏当前分析"
+                            title="收藏当前分析口径"
+                            onClick={pinCurrent}
+                          >
+                            <Bookmark size={16} />
+                          </button>
                           <div className="segmented" aria-label="图表类型">
                             {(["line", "bar", "pie"] as const).map((c) => (
                               <button
@@ -1345,7 +1573,91 @@ export default function Home() {
                           单位：{result.unit || "数值"}
                         </span>
                       </div>
-                      <DataChart plan={activePlan} result={result} />
+                      <div className="explore-chart-options">
+                        <label>
+                          排序
+                          <select
+                            aria-label="图表排序"
+                            value={activePlan.sort}
+                            onChange={(e) =>
+                              setActivePlan((p) => ({
+                                ...p,
+                                sort: e.target.value as Plan["sort"],
+                              }))
+                            }
+                          >
+                            <option value="desc">从高到低</option>
+                            <option value="asc">从低到高</option>
+                            <option value="natural">按维度顺序</option>
+                          </select>
+                        </label>
+                        <label>
+                          展示
+                          <select
+                            aria-label="展示分组数量"
+                            value={activePlan.limit}
+                            onChange={(e) =>
+                              setActivePlan((p) => ({
+                                ...p,
+                                limit: Number(e.target.value),
+                              }))
+                            }
+                          >
+                            {[...new Set([activePlan.limit, 5, 10, 12, 20, 30])]
+                              .sort((a, b) => a - b)
+                              .map((n) => (
+                                <option key={n} value={n}>
+                                  前 {n} 组
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                        {profile.fields.find(
+                          (f) => f.name === activePlan.groupBy,
+                        )?.type === "date" && (
+                          <label>
+                            时间粒度
+                            <select
+                              aria-label="时间粒度"
+                              value={activePlan.timeGrain}
+                              onChange={(e) =>
+                                setActivePlan((p) => ({
+                                  ...p,
+                                  timeGrain: e.target
+                                    .value as Plan["timeGrain"],
+                                  title: `${p.metric || "记录数"}${e.target.value === "day" ? "每日" : "月度"}趋势`,
+                                }))
+                              }
+                            >
+                              <option value="month">按月</option>
+                              <option value="day">按日</option>
+                            </select>
+                          </label>
+                        )}
+                        <span>
+                          <MousePointer2 size={11} />
+                          点击柱形或分组追溯明细
+                        </span>
+                      </div>
+                      <DataChart
+                        plan={activePlan}
+                        result={result}
+                        onPointClick={(name) => inspectGroup(scopedPlan, name)}
+                      />
+                      <div className="drill-strip">
+                        <FileSearch size={13} />
+                        <span>追溯来源</span>
+                        {result.points.slice(0, 8).map((point) => (
+                          <button
+                            key={point.name}
+                            onClick={() => inspectGroup(scopedPlan, point.name)}
+                            aria-label={`查看 ${point.name} 来源明细`}
+                          >
+                            {point.name}
+                            <ArrowUpRight size={10} />
+                          </button>
+                        ))}
+                      </div>
                       {showSQL && (
                         <div className="sql-panel">
                           <div>
@@ -1383,6 +1695,9 @@ export default function Home() {
                           plan={secondaryPlan}
                           result={secondary}
                           small
+                          onPointClick={(name) =>
+                            inspectGroup(secondaryPlan, name)
+                          }
                         />
                         <div className="chart-footer">
                           <span className="legend-dot" />{" "}
@@ -1414,6 +1729,9 @@ export default function Home() {
                             plan={categoryPlan}
                             result={category}
                             small
+                            onPointClick={(name) =>
+                              inspectGroup(categoryPlan, name)
+                            }
                           />
                           <div className="donut-legend">
                             {category.points.slice(0, 5).map((p, i) => (
@@ -1454,6 +1772,34 @@ export default function Home() {
                       </button>
                     </section>
                   </>
+                )}
+                {tab === "lab" && (
+                  <ExplorationLab
+                    key={dataset.id}
+                    dataset={scopeDataset}
+                    sourceDataset={dataset}
+                    profile={profile}
+                    plan={scopedPlan}
+                    pins={pins}
+                    onPinsChange={setPins}
+                    onOpenPlan={openAnalysis}
+                    onPinCurrent={pinCurrent}
+                    onInspectRow={(index) => {
+                      setEvidence({
+                        title: `异常线索 · 筛选内记录 #${index + 1}`,
+                        dataset: {
+                          ...scopeDataset,
+                          rows: [scopeDataset.rows[index]],
+                        },
+                      });
+                      setEvidenceFilter(null);
+                      setDialog("evidence");
+                    }}
+                    onExport={(name, text) => {
+                      download(name, text, "text/markdown;charset=utf-8");
+                      setToast("已导出计算依据与说明");
+                    }}
+                  />
                 )}
                 {tab === "preview" && (
                   <section className="table-card">
@@ -1608,6 +1954,8 @@ export default function Home() {
                               onClick={() => {
                                 setDataset(undo);
                                 setEntries(undoEntries);
+                                setPins(undoPins);
+                                setScopeFilters(undoFilters);
                                 setUndo(null);
                                 setUndoEntries([]);
                                 setToast("已撤销清洗，恢复原始数据");
@@ -1803,7 +2151,7 @@ export default function Home() {
                           className="icon-button"
                           aria-label={`查看${entry.plan.title}`}
                           onClick={() => {
-                            setActivePlan(entry.plan);
+                            openAnalysis(entry.plan);
                             setView("workspace");
                             setTab("overview");
                           }}
@@ -1931,7 +2279,7 @@ export default function Home() {
                       <button
                         className="analysis-result-card"
                         onClick={() => {
-                          setActivePlan(entry.plan);
+                          openAnalysis(entry.plan);
                           setView("workspace");
                           setTab("overview");
                         }}
@@ -1961,6 +2309,35 @@ export default function Home() {
                           条。统计由本地引擎实际执行。
                         </p>
                       </details>
+                      {entry.id === entries[entries.length - 1]?.id && (
+                        <div className="followup-actions">
+                          {activePlan.metric && (
+                            <button
+                              disabled={busy}
+                              onClick={() => void ask("改成均值")}
+                            >
+                              改成均值
+                            </button>
+                          )}
+                          {dimensions.find(
+                            (f) =>
+                              f.name !== activePlan.groupBy &&
+                              f.type === "text" &&
+                              f.unique < 30,
+                          ) && (
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                void ask(
+                                  `再按${dimensions.find((f) => f.name !== activePlan.groupBy && f.type === "text" && f.unique < 30)!.name}看${activePlan.metric || "记录数"}`,
+                                )
+                              }
+                            >
+                              换个维度继续看 <ArrowRight size={9} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2073,6 +2450,39 @@ export default function Home() {
           <CheckCircle2 size={17} />
           {toast}
         </div>
+      )}
+      {dialog === "evidence" && evidence && (
+        <Modal
+          className="evidence-modal"
+          title={evidence.title}
+          subtitle="图表背后的每条记录，都可检查。"
+          onClose={() => setDialog(null)}
+        >
+          <EvidenceView
+            selection={evidence}
+            onExport={(data) => {
+              download(
+                `来源明细_${data.name}`,
+                toCSV(data),
+                "text/csv;charset=utf-8",
+              );
+              setToast("已导出来源明细");
+            }}
+            onFilter={
+              evidenceFilter
+                ? () => {
+                    try {
+                      changeScope(mergeFilters(scopeFilters, [evidenceFilter]));
+                      setDialog(null);
+                      setToast("已联动到所选分组，全部图表同步更新");
+                    } catch (e) {
+                      setToast((e as Error).message);
+                    }
+                  }
+                : undefined
+            }
+          />
+        </Modal>
       )}
       {dialog === "upload" && (
         <Modal
@@ -2245,7 +2655,7 @@ export default function Home() {
       {dialog === "clean" && (
         <Modal
           title="让数据，更干净一点。"
-          subtitle="清洗会生成新的本机副本，完成后可撤销。已有分析将清空，避免混用旧结果。"
+          subtitle="清洗会生成新的本机副本，可撤销。分析记录、联动筛选和收藏会清空，避免混用旧口径。"
           onClose={() => setDialog(null)}
         >
           <div className="clean-options">

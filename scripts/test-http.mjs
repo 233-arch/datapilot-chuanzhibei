@@ -68,6 +68,35 @@ if (mode === "demo") {
   assert.equal(payload.plan.groupBy, "地区");
   assert.equal(payload.plan.metric, "销售额");
   assert.equal(payload.plan.aggregate, "mean");
+  const followup = await fetch(`${base}/api/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: "只看华南",
+      profile,
+      previousPlan: payload.plan,
+    }),
+    signal: timeout(),
+  });
+  const followupEvent = (await followup.text())
+    .split("\n\n")
+    .find((s) => s.startsWith("event: result"));
+  assert.ok(followupEvent);
+  const followupPlan = JSON.parse(followupEvent.match(/data: (.+)/)[1]).plan;
+  assert.equal(followupPlan.metric, "销售额");
+  assert.equal(followupPlan.aggregate, "mean");
+  assert.equal(followupPlan.filter.value, "华南");
+  const invalidContext = await fetch(`${base}/api/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: "改成均值",
+      profile,
+      previousPlan: { ...payload.plan, groupBy: "不存在的字段" },
+    }),
+    signal: timeout(),
+  });
+  assert.ok((await invalidContext.text()).includes("event: error"));
   const unsupported = await fetch(`${base}/api/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -77,5 +106,5 @@ if (mode === "demo") {
   assert.ok((await unsupported.text()).includes("event: error"));
 }
 console.log(
-  "PASS HTTP status, invalid payload, request limits, SSE analysis and honest unsupported-intent errors.",
+  "PASS HTTP status, invalid payload, request limits, SSE analysis, contextual filters, invalid context and honest unsupported-intent errors.",
 );

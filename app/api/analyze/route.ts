@@ -58,6 +58,8 @@ export async function POST(request: Request) {
           payload.question,
           payload.profile,
           config(),
+          fetch,
+          { previousPlan: payload.previousPlan },
         );
         send("step", { step: "validation", label: "校验字段、指标和聚合权限" });
         send("result", result);

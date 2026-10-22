@@ -14,6 +14,17 @@
 - 本机 IndexedDB 保存、最近 30 次分析、Markdown 报告导出。
 - 桌面三栏、移动端助手抽屉、键盘操作与可访问标签。
 
+## v0.2 创新交互
+
+- **联动探索**：最多 8 项“且”条件，同时更新 KPI、图表与数据预览；支持数值/日期区间和缺失筛选，质量检查保留原始范围。
+- **图表溯源**：点击柱形、扇区或分组按钮查看原始记录，支持搜索、分页、明细导出和反向联动筛选。
+- **异常侦探**：IQR 四分位距检测，阈值可调，展示 Q1/Q3、上下界与异常来源。少于 4 条有效记录不判定，不自动删除。
+- **情景推演**：针对全体或某个分类调整单项指标，实时对比基线、模拟值和受影响记录。是固定样本的算术模拟，不是预测或因果分析。
+- **洞察收藏**：最多 12 项分析口径，改名、批注、搜索、恢复、删除撤销与导出。仅允许同维度、指标、聚合和时间粒度对比；缺失分组显示不可比。
+- **连续追问**：携带上一轮受限计划，支持“改成均值”“再按渠道”“只看华南”；真实模型模式同样接收计划上下文。
+
+创新功能、评分对应和可核算演示见 [docs/创新功能.md](docs/创新功能.md)。功能不以包装已有平台替代实现，核心计算源码可检查。
+
 ## 启动
 
 需要 Node.js >= 22.13.0。
@@ -61,6 +72,7 @@ npm run build
 ```powershell
 node node_modules/typescript/bin/tsc --noEmit
 node scripts/test-core.mjs
+node scripts/test-exploration.mjs
 node scripts/test-http.mjs
 node scripts/run-framework.mjs build
 ```
@@ -77,16 +89,17 @@ node scripts/run-framework.mjs build
 
 使用 React、TypeScript、Vinext/Vite、Cloudflare Workers、Recharts、Zod、Lucide，保留 Sites starter 部署与认证集成。
 
-| 文件 | 职责 |
-| --- | --- |
-| `app/page.tsx`、`app/globals.css` | 界面、交互、图表、响应式 |
-| `app/api/analyze/route.ts` | 引擎状态与 SSE 计划接口 |
-| `lib/data-engine.ts` | 解析、质量、清洗、聚合、报告 |
-| `lib/agent.ts` | 摘要检索、模型工具调用、校验 |
-| `lib/local-store.ts` | IndexedDB |
-| `scripts/test-core.mjs`、`scripts/test-http.mjs` | 核心/接口测试 |
-| `docs/技术文档.md` | 设计、实现、限制与评分对应 |
-| `docs/演示脚本.md`、`docs/提交准备.md` | 录制路线与材料准备 |
+| 文件                                                                             | 职责                                 |
+| -------------------------------------------------------------------------------- | ------------------------------------ |
+| `app/page.tsx`、`app/globals.css`                                                | 界面、交互、图表、响应式             |
+| `app/api/analyze/route.ts`                                                       | 引擎状态与 SSE 计划接口              |
+| `lib/data-engine.ts`                                                             | 解析、质量、清洗、聚合、报告         |
+| `lib/agent.ts`                                                                   | 摘要检索、模型工具调用、校验         |
+| `lib/exploration.ts`、`components/exploration/`                                  | 联动筛选、来源、异常、模拟、收藏对比 |
+| `lib/local-store.ts`                                                             | IndexedDB                            |
+| `scripts/test-core.mjs`、`scripts/test-exploration.mjs`、`scripts/test-http.mjs` | 22 项核心、15 项创新计算与接口测试   |
+| `docs/技术文档.md`                                                               | 设计、实现、限制与评分对应           |
+| `docs/演示脚本.md`、`docs/提交准备.md`                                           | 录制路线与材料准备                   |
 
 ## 数据与限制
 

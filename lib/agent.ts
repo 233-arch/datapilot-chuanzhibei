@@ -1,6 +1,19 @@
 import { z } from "zod";
 import type { Profile, Plan } from "./data-engine";
 import { demoPlan, validatePlan } from "./data-engine";
+export const filterClauseSchema = z.object({
+  field: z.string().min(1).max(100),
+  operator: z.enum([
+    "eq",
+    "contains",
+    "gte",
+    "lte",
+    "missing",
+    "bucket",
+    "group",
+  ]),
+  value: z.string().max(200),
+});
 export const planSchema = z.object({
   title: z.string().min(1).max(100),
   chart: z.enum(["bar", "line", "pie"]),
@@ -17,6 +30,7 @@ export const planSchema = z.object({
       value: z.string().max(200),
     })
     .optional(),
+  filters: z.array(filterClauseSchema).max(8).optional(),
 });
 export const profileSchema = z.object({
   rowCount: z.number().int().min(1).max(20000),
@@ -52,6 +66,7 @@ export const profileSchema = z.object({
 export const requestSchema = z.object({
   question: z.string().trim().min(1).max(2000),
   profile: profileSchema,
+  previousPlan: planSchema.optional(),
 });
 export const toolSchema = {
   type: "function",
@@ -85,6 +100,31 @@ export const toolSchema = {
           },
           required: ["field", "operator", "value"],
           additionalProperties: false,
+        },
+        filters: {
+          type: "array",
+          maxItems: 8,
+          items: {
+            type: "object",
+            properties: {
+              field: { type: "string" },
+              operator: {
+                type: "string",
+                enum: [
+                  "eq",
+                  "contains",
+                  "gte",
+                  "lte",
+                  "missing",
+                  "bucket",
+                  "group",
+                ],
+              },
+              value: { type: "string" },
+            },
+            required: ["field", "operator", "value"],
+            additionalProperties: false,
+          },
         },
       },
       required: [
@@ -131,21 +171,32 @@ export async function createPlan(
   profile: Profile,
   config: { key?: string; url?: string; model?: string },
   fetcher: typeof fetch = fetch,
+  context?: { previousPlan?: Plan },
 ): Promise<{ plan: Plan; mode: "model" | "demo"; retrieved: string[] }> {
   const fields = retrieveFields(question, profile);
+  if (context?.previousPlan) validatePlan(context.previousPlan, profile);
   if (!config.key) {
     if (
       /预测|因果|为什么|删除|执行代码|运行代码/.test(question) ||
-      (!profile.fields.some((f) =>
-        question.toLowerCase().includes(f.name.toLowerCase()),
+      (!profile.fields.some(
+        (f) =>
+          question.toLowerCase().includes(f.name.toLowerCase()) ||
+          f.topValues.some((v) => question.includes(v.value)),
       ) &&
-        !/趋势|占比|平均|分组|统计|计数|记录数|分布/.test(question))
+        !/趋势|占比|平均|均值|分组|统计|计数|记录数|分布/.test(question))
     )
       throw new Error(
         "演示模式支持按字段分组、趋势、均值和占比。请带上数据中的字段名提问；预测、因果和复杂语义需另行扩展。",
       );
     return {
-      plan: demoPlan(question, profile),
+      plan: demoPlan(
+        question,
+        profile,
+        context?.previousPlan &&
+          /改成|换成|继续|再按|再看|同样|只看/.test(question)
+          ? context.previousPlan
+          : undefined,
+      ),
       mode: "demo",
       retrieved: fields.map((f) => f.name),
     };
@@ -177,6 +228,7 @@ export async function createPlan(
           role: "user",
           content: JSON.stringify({
             question,
+            previousPlan: context?.previousPlan,
             dataset: { rowCount: profile.rowCount, fields },
           }),
         },

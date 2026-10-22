@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./exploration.css";
 
 export const metadata: Metadata = {
   title: "数问 DataPilot · 让数据回答问题",

@@ -30,6 +30,11 @@ export type Profile = {
   quality: number;
   fields: Field[];
 };
+export type FilterClause = {
+  field: string;
+  operator: "eq" | "contains" | "gte" | "lte" | "missing" | "bucket" | "group";
+  value: string;
+};
 export type Plan = {
   title: string;
   chart: "bar" | "line" | "pie";
@@ -44,6 +49,7 @@ export type Plan = {
     operator: "eq" | "contains" | "gte" | "lte";
     value: string;
   };
+  filters?: FilterClause[];
 };
 export type AnalysisResult = {
   points: { name: string; value: number; count: number }[];
@@ -87,7 +93,7 @@ function isDate(v: Cell): boolean {
   }
   return /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isFinite(Date.parse(v));
 }
-function dateBucket(v: string, grain: "day" | "month"): string {
+export function dateBucket(v: string, grain: "day" | "month"): string {
   const m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m)
     return `${m[1]}-${m[2].padStart(2, "0")}${grain === "day" ? "-" + m[3].padStart(2, "0") : ""}`;
@@ -296,8 +302,12 @@ export function defaultPlan(profile: Profile): Plan {
   };
 }
 /** Limited offline intent recognition; explicitly identified as demo, never a model. */
-export function demoPlan(question: string, profile: Profile): Plan {
-  const p = defaultPlan(profile);
+export function demoPlan(
+  question: string,
+  profile: Profile,
+  previous?: Plan,
+): Plan {
+  const p = { ...(previous || defaultPlan(profile)) };
   const q = question.toLowerCase();
   const matched = profile.fields.filter((f) =>
     q.includes(f.name.toLowerCase()),
@@ -335,13 +345,101 @@ export function demoPlan(question: string, profile: Profile): Plan {
   if (top) p.limit = Math.max(1, Math.min(30, Number(top[1])));
   for (const f of profile.fields.filter((x) => x.type === "text")) {
     const v = f.topValues.find((v) => q.includes(v.value.toLowerCase()));
-    if (v && f.name !== p.groupBy) {
+    if (v) {
       p.filter = { field: f.name, operator: "eq", value: v.value };
       break;
     }
   }
   p.title = `${p.groupBy} · ${p.aggregate === "count" ? "记录数" : p.metric}${p.aggregate === "mean" ? "均值" : ""}${p.chart === "line" ? "趋势" : p.chart === "pie" ? "占比" : "对比"}`;
   return p;
+}
+export function matchesFilters(row: DataRow, filters: FilterClause[]): boolean {
+  return filters.every((filter) => {
+    const value = row[filter.field];
+    const text = String(value ?? "");
+    if (filter.operator === "missing") return value === null || value === "";
+    if (filter.operator === "group")
+      return String(value ?? "未填写") === filter.value;
+    if (filter.operator === "bucket")
+      return value === null
+        ? filter.value === "未填写"
+        : dateBucket(
+            text,
+            /^\d{4}-\d{2}$/.test(filter.value) ? "month" : "day",
+          ) === filter.value;
+    if (filter.operator === "eq") return text === filter.value;
+    if (filter.operator === "contains")
+      return text.toLowerCase().includes(filter.value.toLowerCase());
+    const n = numeric(value),
+      target = numeric(filter.value);
+    if (n !== null && target !== null)
+      return filter.operator === "gte" ? n >= target : n <= target;
+    if (isDate(value) && isDate(filter.value)) {
+      const a = dateBucket(text, "day"),
+        b = dateBucket(filter.value, "day");
+      return filter.operator === "gte" ? a >= b : a <= b;
+    }
+    return false;
+  });
+}
+export function validateFilters(
+  filters: FilterClause[],
+  fields: Pick<Field, "name" | "type">[],
+): void {
+  if (!Array.isArray(filters) || filters.length > 8)
+    throw new Error("最多支持 8 个联动筛选条件。");
+  for (const filter of filters) {
+    if (
+      !fields.some((f) => f.name === filter.field) ||
+      !["eq", "contains", "gte", "lte", "missing", "bucket", "group"].includes(
+        filter.operator,
+      ) ||
+      typeof filter.value !== "string" ||
+      filter.value.length > 200
+    )
+      throw new Error("筛选条件不合法。");
+    if (
+      filter.operator === "bucket" &&
+      !fields.some((f) => f.name === filter.field && f.type === "date")
+    )
+      throw new Error("时间分桶筛选只能用于日期字段。");
+  }
+}
+export function mergeFilters(...lists: FilterClause[][]): FilterClause[] {
+  const map = new Map<string, FilterClause>();
+  for (const filter of lists.flat())
+    map.set(`${filter.field}\u0000${filter.operator}`, { ...filter });
+  return [...map.values()];
+}
+export function filtersForPlan(plan: Plan): FilterClause[] {
+  return mergeFilters(plan.filters || [], plan.filter ? [plan.filter] : []);
+}
+export function filterDataset(
+  dataset: Dataset,
+  filters: FilterClause[],
+): Dataset {
+  const fields = profileDataset(dataset).fields;
+  validateFilters(filters, fields);
+  return filters.length
+    ? {
+        ...dataset,
+        rows: dataset.rows.filter((row) => matchesFilters(row, filters)),
+      }
+    : dataset;
+}
+export function groupFilter(
+  plan: Plan,
+  name: string,
+  profile: Profile,
+): FilterClause {
+  return {
+    field: plan.groupBy,
+    operator:
+      profile.fields.find((f) => f.name === plan.groupBy)?.type === "date"
+        ? "bucket"
+        : "group",
+    value: name,
+  };
 }
 export function validatePlan(plan: Plan, profile: Profile): void {
   if (!profile.fields.some((f) => f.name === plan.groupBy))
@@ -367,6 +465,7 @@ export function validatePlan(plan: Plan, profile: Profile): void {
       !["eq", "contains", "gte", "lte"].includes(plan.filter.operator))
   )
     throw new Error("筛选条件不合法。");
+  validateFilters(filtersForPlan(plan), profile.fields);
 }
 export function executePlan(
   dataset: Dataset,
@@ -382,22 +481,9 @@ export function executePlan(
     validRows = 0;
   const date =
     profile.fields.find((f) => f.name === plan.groupBy)?.type === "date";
+  const filters = filtersForPlan(plan);
   for (const row of dataset.rows) {
-    if (plan.filter) {
-      const v = row[plan.filter.field];
-      const target = plan.filter.value;
-      const n = numeric(v),
-        t = numeric(target);
-      if (
-        (plan.filter.operator === "eq" && String(v ?? "") !== target) ||
-        (plan.filter.operator === "contains" &&
-          !String(v ?? "").includes(target)) ||
-        (plan.filter.operator === "gte" &&
-          (n === null || t === null || n < t)) ||
-        (plan.filter.operator === "lte" && (n === null || t === null || n > t))
-      )
-        continue;
-    }
+    if (!matchesFilters(row, filters)) continue;
     matchedRows++;
     let key = String(row[plan.groupBy] ?? "未填写");
     if (date && row[plan.groupBy] !== null)
@@ -459,8 +545,8 @@ export function executePlan(
     plan.aggregate === "count"
       ? "COUNT(*)"
       : `${plan.aggregate === "mean" ? "AVG" : plan.aggregate.toUpperCase()}(${quote(plan.metric)})`;
-  const where = plan.filter
-    ? `\nWHERE ${quote(plan.filter.field)} ${plan.filter.operator === "contains" ? "LIKE" : plan.filter.operator === "gte" ? ">=" : plan.filter.operator === "lte" ? "<=" : "="} ${literal(plan.filter.operator === "contains" ? "%" + plan.filter.value + "%" : plan.filter.value)}`
+  const where = filters.length
+    ? `\nWHERE ${filters.map((f) => (f.operator === "missing" ? `${quote(f.field)} IS NULL` : `${f.operator === "bucket" ? `DATE_BUCKET(${quote(f.field)})` : f.operator === "group" ? `COALESCE(${quote(f.field)}, '未填写')` : quote(f.field)} ${f.operator === "contains" ? "LIKE" : f.operator === "gte" ? ">=" : f.operator === "lte" ? "<=" : "="} ${literal(f.operator === "contains" ? "%" + f.value + "%" : f.value)}`)).join("\n  AND ")}`
     : "";
   return {
     points,

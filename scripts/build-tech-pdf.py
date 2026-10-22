@@ -39,9 +39,9 @@ def chrome(canvas,doc):
     canvas.setStrokeColor(LINE);canvas.line(48,height-39,width-48,height-39)
     canvas.setFont('CN',8);canvas.setFillColor(GRAY)
     canvas.drawString(48,height-28,'数问 DataPilot / 参赛作品技术说明')
-    canvas.drawRightString(width-48,height-28,'v0.1  |  2026-10-22')
+    canvas.drawRightString(width-48,height-28,'v0.2  |  2026-10-22')
     canvas.line(48,41,width-48,41)
-    canvas.drawString(48,27,'可运行初版 · 演示模式与真实模型模式明确区分')
+    canvas.drawString(48,27,'可核验的数据探索 · 演示模式与真实模型模式明确区分')
     canvas.drawRightString(width-48,27,str(doc.page))
     canvas.restoreState()
 
@@ -54,13 +54,13 @@ if shot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(shot).size
     story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：桌面工作台实际运行界面。截图明确标示演示模式，统计数字来自合成样本实际计算。','small')])
-story.extend([Spacer(1,12),p('交付范围','h3'),p('已实现上传、质量检查、清洗与撤销、可调图表、分析证据、历史与报告。尚需配置真实模型密钥并实测，录制演示视频并准备评审访问。','small'),PageBreak()])
+story.extend([Spacer(1,12),p('交付范围','h3'),p('已实现上传、质量检查、联动筛选、来源回溯、异常侦探、情景推演、洞察收藏对比与连续追问。尚需配置真实模型密钥并实测，录制视频并准备评审访问。','small'),PageBreak()])
 
 lines=(ROOT/'docs/技术文档.md').read_text(encoding='utf-8').splitlines()
 i=0
 while i<len(lines):
     line=lines[i].strip()
-    if not line or line.startswith('# ') or line.startswith('版本 v0.1'):
+    if not line or line.startswith('# ') or line.startswith('版本 v'):
         i+=1;continue
     if line.startswith('```'):
         block=[];i+=1
@@ -83,6 +83,11 @@ while i<len(lines):
     if line.startswith('### '):
         story.append(p(line[4:],'h3'));i+=1;continue
     story.append(p(line));i+=1
+labshot=ROOT/'docs/screenshots/v2-scenario.png'
+if labshot.exists():
+    from PIL import Image as PILImage
+    w,h=PILImage.open(labshot).size
+    story.extend([PageBreak(),p('附录：创新实验室运行界面','h2'),Image(str(labshot),width=499,height=499*h/w),Spacer(1,7),p('图 2：8 行合成样本，仅将华东销售额增加 10%，总模拟值 4960；该界面为固定样本的情景模拟，不是预测。','small')])
 doc.build(story,onFirstPage=chrome,onLaterPages=chrome)
 reader=PdfReader(str(target))
 assert len(reader.pages)<=30
