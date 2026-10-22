@@ -14,6 +14,22 @@
 - 本机 IndexedDB 保存、最近 30 次分析、Markdown 报告导出。
 - 桌面三栏、移动端助手抽屉、键盘操作与可访问标签。
 
+## 团队信息与提交状态
+
+学校、组别、队名、队员及指导老师尚未提供，不能据此宣称满足正式提交条件。请按 `submission/team.example.json` 在本机填写 `submission/team.json`，并把应公开的真实团队信息补充到本节。组别、同校身份和参赛资格由参赛者核对。
+
+截至 2026-10-22，尚缺真实模型实测、GitHub/Gitee 评审仓库、团队信息、实际 5-8 分钟 1080p 普通话 MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+
+## v0.3 从调研到改进
+
+- 字段字典：字段释义、单位、最多 8 个别名，参与检索和模型上下文；别名冲突会被拒绝。
+- 逐层下钻：在来源明细中保留分组与原口径，继续按其他维度分析。
+- 离线报告：预览并导出自带 SVG 图表和表格的 HTML，可打印为 PDF，保留范围、有效记录、口径和字段说明。
+- 分析配置迁移：导出计划、收藏、字典和 SHA-256 数据指纹；在相同数据上恢复，不包含原始行。
+- 提交检查与真实模型固定集：`npm run check:submission`、`npm run eval:model`，未配置或缺少材料时明确失败，不回退冒充通过。
+
+调研来源与实现差异见 `docs/竞品调研.md`；原创与依赖边界见 `docs/开源与原创说明.md`。
+
 ## v0.2 创新交互
 
 - **联动探索**：最多 8 项“且”条件，同时更新 KPI、图表与数据预览；支持数值/日期区间和缺失筛选，质量检查保留原始范围。
@@ -73,6 +89,7 @@ npm run build
 node node_modules/typescript/bin/tsc --noEmit
 node scripts/test-core.mjs
 node scripts/test-exploration.mjs
+node scripts/test-workspace-kit.mjs
 node scripts/test-http.mjs
 node scripts/run-framework.mjs build
 ```
@@ -89,17 +106,17 @@ node scripts/run-framework.mjs build
 
 使用 React、TypeScript、Vinext/Vite、Cloudflare Workers、Recharts、Zod、Lucide，保留 Sites starter 部署与认证集成。
 
-| 文件                                                                             | 职责                                 |
-| -------------------------------------------------------------------------------- | ------------------------------------ |
-| `app/page.tsx`、`app/globals.css`                                                | 界面、交互、图表、响应式             |
-| `app/api/analyze/route.ts`                                                       | 引擎状态与 SSE 计划接口              |
-| `lib/data-engine.ts`                                                             | 解析、质量、清洗、聚合、报告         |
-| `lib/agent.ts`                                                                   | 摘要检索、模型工具调用、校验         |
-| `lib/exploration.ts`、`components/exploration/`                                  | 联动筛选、来源、异常、模拟、收藏对比 |
-| `lib/local-store.ts`                                                             | IndexedDB                            |
-| `scripts/test-core.mjs`、`scripts/test-exploration.mjs`、`scripts/test-http.mjs` | 22 项核心、15 项创新计算与接口测试   |
-| `docs/技术文档.md`                                                               | 设计、实现、限制与评分对应           |
-| `docs/演示脚本.md`、`docs/提交准备.md`                                           | 录制路线与材料准备                   |
+| 文件                                                                                                               | 职责                                                |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| `app/page.tsx`、`app/globals.css`                                                                                  | 界面、交互、图表、响应式                            |
+| `app/api/analyze/route.ts`                                                                                         | 引擎状态与 SSE 计划接口                             |
+| `lib/data-engine.ts`                                                                                               | 解析、质量、清洗、聚合、报告                        |
+| `lib/agent.ts`                                                                                                     | 摘要检索、模型工具调用、校验                        |
+| `lib/exploration.ts`、`components/exploration/`                                                                    | 联动筛选、来源、异常、模拟、收藏对比                |
+| `lib/local-store.ts`                                                                                               | IndexedDB                                           |
+| `scripts/test-core.mjs`、`scripts/test-exploration.mjs`、`scripts/test-workspace-kit.mjs`、`scripts/test-http.mjs` | 22 项核心、15 项探索、12 项字典/配置/报告与接口测试 |
+| `docs/技术文档.md`                                                                                                 | 设计、实现、限制与评分对应                          |
+| `docs/演示脚本.md`、`docs/提交准备.md`                                                                             | 录制路线与材料准备                                  |
 
 ## 数据与限制
 

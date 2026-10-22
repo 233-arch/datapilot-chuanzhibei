@@ -18,13 +18,18 @@ export function EvidenceView({
   selection,
   onExport,
   onFilter,
+  dimensions = [],
+  onDrill,
 }: {
   selection: EvidenceSelection;
   onExport: (dataset: Dataset) => void;
   onFilter?: () => void;
+  dimensions?: string[];
+  onDrill?: (field: string) => void;
 }) {
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
+  const [nextDimension, setNextDimension] = useState(dimensions[0] || "");
   const dataset = selection.dataset;
   const rows = dataset.rows.filter(
     (r) =>
@@ -85,6 +90,29 @@ export function EvidenceView({
           </button>
         </div>
       </div>
+      {onDrill && dimensions.length > 0 && (
+        <div className="evidence-drill">
+          <label>
+            保留此分组，继续探索
+            <select
+              aria-label="继续分析维度"
+              value={nextDimension}
+              onChange={(e) => setNextDimension(e.target.value)}
+            >
+              {dimensions.map((f) => (
+                <option key={f}>{f}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="button primary"
+            onClick={() => onDrill(nextDimension)}
+          >
+            按此维度继续分析
+          </button>
+          <p>保留已有筛选、指标与聚合方式；只改变分组维度，并重新计算结果。</p>
+        </div>
+      )}
       <div className="table-overflow">
         <table className="data-table">
           <thead>

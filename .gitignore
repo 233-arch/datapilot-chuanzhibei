@@ -42,6 +42,8 @@ yarn-error.log*
 /outputs/
 /work/
 /tmp/
+/submission/team.json
+/submission/review.json
 
 # OS metadata
 .DS_Store

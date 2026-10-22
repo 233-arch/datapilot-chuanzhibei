@@ -43,6 +43,9 @@ export const profileSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1).max(100),
+        description: z.string().max(300).optional(),
+        aliases: z.array(z.string().min(1).max(40)).max(8).optional(),
+        unit: z.string().max(20).optional(),
         type: z.enum(["number", "date", "text"]),
         missing: z.number().nonnegative(),
         invalid: z.number().nonnegative(),
@@ -148,6 +151,9 @@ export function retrieveFields(question: string, profile: Profile) {
       field: f,
       score:
         (tokens.includes(f.name.toLowerCase()) ? 10 : 0) +
+        ((f.aliases || []).some((a) => tokens.includes(a.toLowerCase()))
+          ? 9
+          : 0) +
         f.topValues.filter((v) => tokens.includes(v.value.toLowerCase()))
           .length *
           3 +
@@ -173,15 +179,34 @@ export async function createPlan(
   fetcher: typeof fetch = fetch,
   context?: { previousPlan?: Plan },
 ): Promise<{ plan: Plan; mode: "model" | "demo"; retrieved: string[] }> {
-  const fields = retrieveFields(question, profile);
+  const retrieved = retrieveFields(question, profile);
+  const contextNames = context?.previousPlan
+    ? [
+        context.previousPlan.groupBy,
+        context.previousPlan.metric,
+        ...(context.previousPlan.filters || []).map((f) => f.field),
+        context.previousPlan.filter?.field,
+      ]
+    : [];
+  const prioritized = [
+    ...profile.fields.filter((f) => contextNames.includes(f.name)),
+    ...retrieved,
+  ];
+  const fields = retrieveFields(question, {
+    ...profile,
+    fields: prioritized.filter(
+      (f, i) => prioritized.findIndex((other) => other.name === f.name) === i,
+    ),
+  });
   if (context?.previousPlan) validatePlan(context.previousPlan, profile);
   if (!config.key) {
     if (
       /预测|因果|为什么|删除|执行代码|运行代码/.test(question) ||
       (!profile.fields.some(
         (f) =>
-          question.toLowerCase().includes(f.name.toLowerCase()) ||
-          f.topValues.some((v) => question.includes(v.value)),
+          [f.name, ...(f.aliases || [])].some((name) =>
+            question.toLowerCase().includes(name.toLowerCase()),
+          ) || f.topValues.some((v) => question.includes(v.value)),
       ) &&
         !/趋势|占比|平均|均值|分组|统计|计数|记录数|分布/.test(question))
     )

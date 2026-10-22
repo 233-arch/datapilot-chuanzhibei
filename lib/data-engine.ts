@@ -4,6 +4,9 @@ export type DataRow = Record<string, Cell>;
 export type FieldType = "number" | "date" | "text";
 export type Field = {
   name: string;
+  description?: string;
+  aliases?: string[];
+  unit?: string;
   type: FieldType;
   missing: number;
   invalid: number;
@@ -310,7 +313,9 @@ export function demoPlan(
   const p = { ...(previous || defaultPlan(profile)) };
   const q = question.toLowerCase();
   const matched = profile.fields.filter((f) =>
-    q.includes(f.name.toLowerCase()),
+    [f.name, ...(f.aliases || [])].some((name) =>
+      q.includes(name.toLowerCase()),
+    ),
   );
   const dimension = matched.find((f) => f.type !== "number");
   const metric = matched.find((f) => f.type === "number");
@@ -558,9 +563,8 @@ export function executePlan(
     unit:
       plan.aggregate === "count"
         ? "条"
-        : /额|金额|销售|利润|收入/.test(plan.metric)
-          ? "元"
-          : "",
+        : profile.fields.find((f) => f.name === plan.metric)?.unit ||
+          (/额|金额|销售|利润|收入/.test(plan.metric) ? "元" : ""),
   };
 }
 export function formatNumber(n: number, compact = false): string {

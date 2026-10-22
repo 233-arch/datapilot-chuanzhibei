@@ -1,6 +1,6 @@
 {
   "name": "datapilot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,10 +12,13 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs",
+    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs && node scripts/test-workspace-kit.mjs",
     "typecheck": "tsc --noEmit",
     "test:http": "node scripts/test-http.mjs",
-    "test:exploration": "node scripts/test-exploration.mjs"
+    "test:exploration": "node scripts/test-exploration.mjs",
+    "test:kit": "node scripts/test-workspace-kit.mjs",
+    "eval:model": "node scripts/eval-model.mjs",
+    "check:submission": "node scripts/check-submission.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

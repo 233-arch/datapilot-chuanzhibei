@@ -4,6 +4,9 @@ import {
   useMemo,
   useEffect,
   useRef,
+  lazy,
+  Suspense,
+  type ComponentProps,
   type ChangeEvent,
   type DragEvent,
   type ReactNode,
@@ -102,11 +105,75 @@ import {
 import { readWorkspace, writeWorkspace } from "@/lib/local-store";
 import { type PinnedInsight, evidenceRows } from "@/lib/exploration";
 import { FilterBar } from "@/components/exploration/filter-bar";
-import { ExplorationLab } from "@/components/exploration/lab";
+import {
+  type Dictionary,
+  enrichProfile,
+  validateDictionary,
+  drillPlan,
+  exportRecipe,
+  importRecipe,
+  reportHTML,
+} from "@/lib/workspace-kit";
 import {
   EvidenceView,
   type EvidenceSelection,
 } from "@/components/exploration/evidence";
+const LazyLab = lazy(() =>
+  import("@/components/exploration/lab").then((m) => ({
+    default: m.ExplorationLab,
+  })),
+);
+const LazyDictionary = lazy(() =>
+  import("@/components/exploration/workspace-kit").then((m) => ({
+    default: m.DictionaryEditor,
+  })),
+);
+const LazyDelivery = lazy(() =>
+  import("@/components/exploration/workspace-kit").then((m) => ({
+    default: m.DeliveryCenter,
+  })),
+);
+function ToolLoading() {
+  return (
+    <div className="kit-callout" role="status">
+      <LoaderCircle size={18} className="spin" />
+      正在加载分析工具…
+    </div>
+  );
+}
+function ExplorationLab(
+  props: ComponentProps<
+    typeof import("@/components/exploration/lab").ExplorationLab
+  >,
+) {
+  return (
+    <Suspense fallback={<ToolLoading />}>
+      <LazyLab {...props} />
+    </Suspense>
+  );
+}
+function DictionaryEditor(
+  props: ComponentProps<
+    typeof import("@/components/exploration/workspace-kit").DictionaryEditor
+  >,
+) {
+  return (
+    <Suspense fallback={<ToolLoading />}>
+      <LazyDictionary {...props} />
+    </Suspense>
+  );
+}
+function DeliveryCenter(
+  props: ComponentProps<
+    typeof import("@/components/exploration/workspace-kit").DeliveryCenter
+  >,
+) {
+  return (
+    <Suspense fallback={<ToolLoading />}>
+      <LazyDelivery {...props} />
+    </Suspense>
+  );
+}
 type Entry = {
   id: string;
   question: string;
@@ -117,7 +184,16 @@ type Entry = {
 };
 type Tab = "overview" | "preview" | "quality" | "lab";
 type View = "workspace" | "datasets" | "reports";
-type Dialog = "upload" | "help" | "settings" | "clean" | "evidence" | null;
+type Dialog =
+  | "upload"
+  | "help"
+  | "settings"
+  | "clean"
+  | "evidence"
+  | "dictionary"
+  | "delivery"
+  | "report-preview"
+  | null;
 const colors = [
   "#118a74",
   "#6cba9d",
@@ -423,6 +499,8 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [scopeFilters, setScopeFilters] = useState<FilterClause[]>([]);
   const [pins, setPins] = useState<PinnedInsight[]>([]);
+  const [dictionary, setDictionary] = useState<Dictionary>({});
+  const [reportPreview, setReportPreview] = useState("");
   const [evidence, setEvidence] = useState<EvidenceSelection | null>(null);
   const [evidenceFilter, setEvidenceFilter] = useState<FilterClause | null>(
     null,
@@ -462,7 +540,10 @@ export default function Home() {
   const chatBottom = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const requestGeneration = useRef(0);
-  const profile = useMemo(() => profileDataset(dataset), [dataset]);
+  const profile = useMemo(
+    () => enrichProfile(profileDataset(dataset), dictionary),
+    [dataset, dictionary],
+  );
   const scopeDataset = useMemo(
     () => filterDataset(dataset, scopeFilters),
     [dataset, scopeFilters],
@@ -599,6 +680,7 @@ export default function Home() {
       pins?: PinnedInsight[];
       filters?: FilterClause[];
       plan?: Plan;
+      dictionary?: Dictionary;
     }>()
       .then((value) => {
         if (
@@ -610,6 +692,13 @@ export default function Home() {
           setDataset(value.dataset);
           setActivePlan(defaultPlan(p));
           setEntries(value.entries || []);
+          try {
+            setDictionary(
+              validateDictionary(value.dictionary || {}, value.dataset.columns),
+            );
+          } catch {
+            setDictionary({});
+          }
           try {
             validateFilters(value.filters || [], p.fields);
             setScopeFilters(value.filters || []);
@@ -666,12 +755,13 @@ export default function Home() {
         pins,
         filters: scopeFilters,
         plan: activePlan,
+        dictionary,
       })
         .then(() => setSaved(true))
         .catch(() => setSaved(false));
     }, 300);
     return () => clearTimeout(id);
-  }, [dataset, entries, pins, scopeFilters, activePlan, ready]);
+  }, [dataset, entries, pins, scopeFilters, activePlan, dictionary, ready]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 4000);
@@ -693,6 +783,7 @@ export default function Home() {
     setEntries([]);
     setScopeFilters([]);
     setPins([]);
+    setDictionary({});
     setEvidence(null);
     setUndoPins([]);
     setUndoFilters([]);
@@ -729,6 +820,9 @@ export default function Home() {
     }
   }
   function exportReport() {
+    setDialog("delivery");
+  }
+  function exportMarkdown() {
     const analyses = [
       ...entries.map(({ plan, result }) => ({ plan, result })),
       { plan: scopedPlan, result },
@@ -753,6 +847,28 @@ export default function Home() {
       "text/markdown;charset=utf-8",
     );
     setToast("分析报告已导出，包含统计结果与计算口径");
+  }
+  function printableReport() {
+    const analyses = [
+      { plan: scopedPlan },
+      ...pins.map((p) => ({ plan: p.plan, note: p.note })),
+      ...entries.map(({ plan, mode }) => ({ plan, mode })),
+    ];
+    const unique = analyses.filter(
+      (a, i) =>
+        analyses.findIndex(
+          (b) => JSON.stringify(b.plan) === JSON.stringify(a.plan),
+        ) === i,
+    );
+    return reportHTML(dataset, profile, unique, dictionary);
+  }
+  function exportPrintableReport() {
+    download(
+      `${dataset.name.replace(/\.[^.]+$/, "")}_分析报告.html`,
+      printableReport(),
+      "text/html;charset=utf-8",
+    );
+    setToast("HTML 报告已生成，可离线打开并打印为 PDF");
   }
   async function ask(text = question) {
     const q = text.trim();
@@ -1103,6 +1219,10 @@ export default function Home() {
           <button className="nav-item" onClick={() => setDialog("settings")}>
             <Settings2 size={17} />
             工作空间设置
+          </button>
+          <button className="nav-item" onClick={() => setDialog("dictionary")}>
+            <BookOpen size={18} />
+            <span>字段字典</span>
           </button>
           <button className="nav-item" onClick={() => setDialog("help")}>
             <CircleHelp size={17} />
@@ -2460,6 +2580,31 @@ export default function Home() {
         >
           <EvidenceView
             selection={evidence}
+            dimensions={profile.fields
+              .filter(
+                (f) => f.type !== "number" && f.name !== evidence.plan?.groupBy,
+              )
+              .map((f) => f.name)}
+            onDrill={
+              evidence.plan && evidence.group !== undefined
+                ? (field) => {
+                    try {
+                      openAnalysis(
+                        drillPlan(
+                          evidence.plan!,
+                          evidence.group!,
+                          field,
+                          profile,
+                        ),
+                      );
+                      setDialog(null);
+                      setToast("已保留当前分组，继续按新维度分析");
+                    } catch (e) {
+                      setToast((e as Error).message);
+                    }
+                  }
+                : undefined
+            }
             onExport={(data) => {
               download(
                 `来源明细_${data.name}`,
@@ -2482,6 +2627,98 @@ export default function Home() {
                 : undefined
             }
           />
+        </Modal>
+      )}
+      {dialog === "dictionary" && (
+        <Modal
+          title="字段字典"
+          subtitle="让缩写、业务含义和常用说法对齐。"
+          onClose={() => setDialog(null)}
+        >
+          <DictionaryEditor
+            profile={profile}
+            dictionary={dictionary}
+            onSave={(value) => {
+              changeScope(scopeFilters);
+              setDictionary(value);
+              setDialog(null);
+              setToast("字段字典已保存，后续提问将使用这些定义");
+            }}
+          />
+        </Modal>
+      )}
+      {dialog === "delivery" && (
+        <Modal
+          title="把分析，变成可以带走的成果。"
+          subtitle="报告包含计算依据；分析配置可在相同数据上复现。"
+          onClose={() => setDialog(null)}
+        >
+          <DeliveryCenter
+            onPreview={() => {
+              setReportPreview(printableReport());
+              setDialog("report-preview");
+            }}
+            onHTML={exportPrintableReport}
+            onMarkdown={exportMarkdown}
+            onRecipe={async () => {
+              download(
+                "DataPilot_分析配置.json",
+                await exportRecipe(
+                  dataset,
+                  profile,
+                  scopedPlan,
+                  dictionary,
+                  pins,
+                ),
+                "application/json;charset=utf-8",
+              );
+            }}
+            onImport={async (text) => {
+              const generation = requestGeneration.current;
+              const imported = await importRecipe(text, dataset, profile);
+              if (generation !== requestGeneration.current)
+                throw new Error("工作空间已改变，请重试导入。");
+              changeScope(filtersForPlan(imported.plan));
+              setDictionary(imported.dictionary);
+              setPins(imported.pins);
+              setActivePlan(barePlan(imported.plan));
+              setView("workspace");
+              setTab("overview");
+              setToast("分析配置已恢复，原始数据保持不变");
+            }}
+          />
+        </Modal>
+      )}
+      {dialog === "report-preview" && (
+        <Modal
+          className="evidence-modal"
+          title="离线报告预览"
+          subtitle="检查范围、图表和口径后再导出。"
+          onClose={() => setDialog("delivery")}
+        >
+          <iframe
+            title="可打印分析报告预览"
+            sandbox=""
+            srcDoc={reportPreview}
+            style={{
+              width: "100%",
+              height: "65vh",
+              border: "1px solid #e2eadc",
+              borderRadius: 8,
+            }}
+          />
+          <div className="kit-buttons">
+            <button className="button primary" onClick={exportPrintableReport}>
+              <Download size={14} />
+              导出此 HTML 报告
+            </button>
+            <button
+              className="button subtle"
+              onClick={() => setDialog("delivery")}
+            >
+              返回导出中心
+            </button>
+          </div>
         </Modal>
       )}
       {dialog === "upload" && (
@@ -2557,7 +2794,7 @@ export default function Home() {
               [
                 "03",
                 "核对，再带走答案",
-                "图表支持切换维度、指标与类型。展开“分析依据”核对参与记录、缺失排除和计算口径，再导出 Markdown 报告。",
+                "点击图表查看来源并继续下钻。通过字段字典补充别名与单位；导出 HTML 图表报告或分析配置，在相同数据上复现。",
               ],
             ].map(([n, title, desc]) => (
               <div key={n}>
@@ -2600,7 +2837,7 @@ export default function Home() {
               <span
                 className={`badge ${mode === "model" ? "green" : "neutral"}`}
               >
-                {mode === "model" ? "已连接模型" : "演示模式"}
+                {mode === "model" ? "模型已配置" : "演示模式"}
               </span>
             </h3>
             <p>
