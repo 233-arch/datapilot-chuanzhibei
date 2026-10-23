@@ -150,6 +150,7 @@ const recipeSchema = z
 export async function datasetFingerprint(dataset: Dataset): Promise<string> {
   const canonical = JSON.stringify([
     dataset.columns,
+    ...(dataset.types && Object.keys(dataset.types).length ? [dataset.types] : []),
     dataset.rows.map((row) =>
       dataset.columns.map((c) => (row[c] === null ? null : String(row[c]))),
     ),

@@ -1,0 +1,45 @@
+{
+  "sourceFingerprint": "de3d71439245760926855dd140d7ba0e1b43d4d24e5b83bb4d0afc7d7e3ea547",
+  "date": "2026-10-23T11:10:12.193Z",
+  "runtime": "Node v24.19.0",
+  "platform": "win32",
+  "rows": 20000,
+  "columns": 10,
+  "bytes": 1245082,
+  "rounds": [
+    {
+      "parseMs": 60.23,
+      "profileMs": 132.71,
+      "comparisonMs": 130.84,
+      "totalMs": 323.78
+    },
+    {
+      "parseMs": 45.01,
+      "profileMs": 140.22,
+      "comparisonMs": 95.13,
+      "totalMs": 280.36
+    },
+    {
+      "parseMs": 44.43,
+      "profileMs": 146.77,
+      "comparisonMs": 96.63,
+      "totalMs": 287.83
+    },
+    {
+      "parseMs": 43.39,
+      "profileMs": 119.2,
+      "comparisonMs": 96.64,
+      "totalMs": 259.23
+    },
+    {
+      "parseMs": 35.17,
+      "profileMs": 129.72,
+      "comparisonMs": 101.14,
+      "totalMs": 266.03
+    }
+  ],
+  "elapsedMs": 1774,
+  "mainThreadTimerTicks": 249,
+  "passed": true,
+  "limitations": "本机Node Worker线程的固定合成样本测试，不是浏览器、托管服务器或并发负载性能承诺。"
+}

@@ -111,4 +111,10 @@ await test("DeepSeek forced tool calls disable default thinking without changing
     else assert.equal(Object.hasOwn(body,"thinking"),false);
   }
 });
+await test("Unused empty time grain is repaired only for non-date groupings",async()=>{
+ const mock=(grain,group)=>async()=>Response.json({choices:[{message:{tool_calls:[{function:{name:'create_analysis_plan',arguments:JSON.stringify({...plan,groupBy:group,timeGrain:grain})}}]}}]});
+ const answer=await a.createPlan('按地区统计金额',profile,{key:'test-only',url:'https://example.com'},mock('','地区'));
+ assert.equal(answer.plan.timeGrain,'month');
+ await assert.rejects(()=>a.createPlan('按月看金额',profile,{key:'test-only',url:'https://example.com'},mock('','日期')));
+});
 console.log(`\n${count} copilot checks passed.`);

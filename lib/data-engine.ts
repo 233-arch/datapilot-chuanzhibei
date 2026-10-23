@@ -23,6 +23,7 @@ export type Dataset = {
   rows: DataRow[];
   source: "demo" | "upload";
   createdAt: string;
+  types?: Record<string, FieldType>;
 };
 export type Profile = {
   rowCount: number;
@@ -183,12 +184,12 @@ export function profileDataset(dataset: Dataset): Profile {
     const values = dataset.rows.map((r) => r[name]);
     const present = values.filter((v) => v !== null && v !== "");
     const nums = present.map(numeric).filter((v): v is number => v !== null);
-    const type: FieldType =
+    const type: FieldType = dataset.types?.[name] || (
       present.length && present.filter(isDate).length / present.length >= 0.9
         ? "date"
         : present.length && nums.length / present.length >= 0.8
           ? "number"
-          : "text";
+          : "text");
     const count = new Map<string, number>();
     present.forEach((v) =>
       count.set(String(v), (count.get(String(v)) || 0) + 1),
@@ -403,6 +404,8 @@ export function validateFilters(
       filter.value.length > 200
     )
       throw new Error("筛选条件不合法。");
+    if (filter.operator === 'missing' && filter.value !== '')
+      throw new Error('缺失筛选只能查找空值，不能表示“非空”条件。');
     if (
       filter.operator === "bucket" &&
       !fields.some((f) => f.name === filter.field && f.type === "date")
@@ -428,8 +431,10 @@ export function filtersForPlan(plan: Plan): FilterClause[] {
 export function filterDataset(
   dataset: Dataset,
   filters: FilterClause[],
+  profile?: Pick<Profile, 'fields'>,
 ): Dataset {
-  const fields = profileDataset(dataset).fields;
+  if(Array.isArray(filters) && filters.length===0)return dataset;
+  const fields = profile?.fields || profileDataset(dataset).fields;
   validateFilters(filters, fields);
   return filters.length
     ? {

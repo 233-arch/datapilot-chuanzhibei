@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-23T11:16:11.541Z",
+  "mode": "model",
+  "focus": [
+    "current",
+    "previous",
+    "delta"
+  ],
+  "checks": [
+    "coverage",
+    "outlier",
+    "definition"
+  ],
+  "usage": {
+    "input": 511,
+    "output": 67
+  },
+  "latencyMs": 1759,
+  "invalidPayloadStatus": 400,
+  "passed": true
+}

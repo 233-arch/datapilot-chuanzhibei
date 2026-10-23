@@ -1,6 +1,6 @@
 {
   "name": "datapilot",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,7 +12,7 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs && node scripts/test-workspace-kit.mjs && node scripts/test-copilot.mjs",
+    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs && node scripts/test-workspace-kit.mjs && node scripts/test-copilot.mjs && node scripts/test-diagnostics.mjs",
     "typecheck": "tsc --noEmit",
     "test:http": "node scripts/test-http.mjs",
     "test:exploration": "node scripts/test-exploration.mjs",
@@ -22,7 +22,8 @@
     "check:submission": "node scripts/check-submission.mjs",
     "check:source": "node scripts/scan-review-source.mjs",
     "test:repository": "node scripts/test-review-repository.mjs",
-    "verify:repository": "node scripts/verify-review-repository.mjs"
+    "verify:repository": "node scripts/verify-review-repository.mjs",
+    "test:diagnostics": "node scripts/test-diagnostics.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -44,6 +45,7 @@
     "react-dom": "19.2.6",
     "react-hook-form": "^7.85.0",
     "react-resizable-panels": "^4.12.2",
+    "read-excel-file": "9.3.12",
     "recharts": "^3.8.0",
     "sonner": "^2.0.8",
     "tailwind-merge": "3.6.0",

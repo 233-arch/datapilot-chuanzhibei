@@ -77,6 +77,7 @@ import {
   PieChart,
   Pie,
   Cell as PieCell,
+  Brush,
 } from "recharts";
 import {
   type Dataset,
@@ -102,9 +103,40 @@ import {
   validateFilters,
   validatePlan,
 } from "@/lib/data-engine";
+import {
+  clarifyQuestion,
+  analysisFacts,
+  type Clarification,
+  rangeFilters,
+} from "@/lib/diagnostics";
+import { EvidenceGuide } from "@/components/exploration/evidence-guide";
+import { backgroundTask } from "@/lib/background";
+import { campusScenario } from "@/lib/scenarios";
+const LazyDiagnostics = lazy(() =>
+  import("@/components/exploration/diagnostics").then((m) => ({
+    default: m.Diagnostics,
+  })),
+);
+const LazyImportWizard = lazy(() =>
+  import("@/components/exploration/import-wizard").then((m) => ({
+    default: m.ImportWizard,
+  })),
+);
 import { readWorkspace, writeWorkspace } from "@/lib/local-store";
-import { explorationTasks, proposeAnalysis, planKey, recordJourney, restoreJourney, type JourneyState, type ExplorationTask } from "@/lib/copilot";
-import { ExplorationNavigator, PlanReview, AnalysisJourney } from "@/components/exploration/copilot";
+import {
+  explorationTasks,
+  proposeAnalysis,
+  planKey,
+  recordJourney,
+  restoreJourney,
+  type JourneyState,
+  type ExplorationTask,
+} from "@/lib/copilot";
+import {
+  ExplorationNavigator,
+  PlanReview,
+  AnalysisJourney,
+} from "@/components/exploration/copilot";
 import { type PinnedInsight, evidenceRows } from "@/lib/exploration";
 import { FilterBar } from "@/components/exploration/filter-bar";
 import {
@@ -185,8 +217,11 @@ type Entry = {
   retrieved: string[];
   origin?: "model" | "demo" | "navigator";
 };
-type Proposal = Omit<Entry, "id"> & { basis: string; origin: "model" | "demo" | "navigator" };
-type Tab = "overview" | "preview" | "quality" | "lab";
+type Proposal = Omit<Entry, "id"> & {
+  basis: string;
+  origin: "model" | "demo" | "navigator";
+};
+type Tab = "overview" | "preview" | "quality" | "lab" | "diagnostics";
 type View = "workspace" | "datasets" | "reports";
 type Dialog =
   | "upload"
@@ -239,12 +274,19 @@ function DataChart({
   result,
   small = false,
   onPointClick,
+  onRange,
 }: {
   plan: Plan;
   result: AnalysisResult;
   small?: boolean;
   onPointClick?: (name: string) => void;
+  onRange?: (start: string, end: string) => void;
 }) {
+  const [range, setRange] = useState<{
+    startIndex?: number;
+    endIndex?: number;
+  } | null>(null);
+  useEffect(() => setRange(null), [result, plan]);
   if (!result.points.length)
     return (
       <div className="chart-empty">
@@ -290,7 +332,7 @@ function DataChart({
   return (
     <div
       className={`chart-wrap ${small ? "small-chart" : ""}`}
-      role="img"
+      role="group"
       aria-label={`${plan.title}。${result.summary}`}
     >
       <ResponsiveContainer
@@ -366,6 +408,16 @@ function DataChart({
               }
             />
             {tooltip}
+            {onRange && (
+              <Brush
+                dataKey="name"
+                height={24}
+                stroke="#8bbba4"
+                travellerWidth={10}
+                onChange={(value) => setRange(value)}
+                tickFormatter={(v) => String(v).slice(0, 10)}
+              />
+            )}
             <Area
               type="monotone"
               dataKey="value"
@@ -421,6 +473,22 @@ function DataChart({
           </BarChart>
         )}
       </ResponsiveContainer>
+      {onRange && plan.chart === "line" && range && (
+        <div className="range-apply">
+          <button
+            className="button subtle"
+            onClick={() => {
+              const a = result.points[range.startIndex ?? 0]?.name,
+                b =
+                  result.points[range.endIndex ?? result.points.length - 1]
+                    ?.name;
+              if (a && b) onRange(a, b);
+            }}
+          >
+            应用选中的时间范围
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -509,6 +577,15 @@ export default function Home() {
   const [evidenceFilter, setEvidenceFilter] = useState<FilterClause | null>(
     null,
   );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [clarification, setClarification] = useState<Clarification | null>(
+    null,
+  );
+  const [preparedProfile, setPreparedProfile] = useState<{
+    id: string;
+    profile: Profile;
+  } | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
   const [view, setView] = useState<View>("workspace");
   const [tab, setTab] = useState<Tab>("overview");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -526,12 +603,22 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [assistant, setAssistant] = useState(true);
   const [mobileChat, setMobileChat] = useState(false);
-  const [assistantTab, setAssistantTab] = useState<"chat" | "navigator">("chat");
+  const [assistantTab, setAssistantTab] = useState<"chat" | "navigator">(
+    "chat",
+  );
   const [previewFirst, setPreviewFirst] = useState(true);
   const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [journey, setJourney] = useState<JourneyState>({ datasetId: initialDataset.id, steps: [], cursor: -1 });
+  const [journey, setJourney] = useState<JourneyState>({
+    datasetId: initialDataset.id,
+    steps: [],
+    cursor: -1,
+  });
   const [replaying, setReplaying] = useState(false);
-  const [modelHealth, setModelHealth] = useState<{busy:boolean; ok?:boolean; message:string}>({busy:false,message:""});
+  const [modelHealth, setModelHealth] = useState<{
+    busy: boolean;
+    ok?: boolean;
+    message: string;
+  }>({ busy: false, message: "" });
   const [showSQL, setShowSQL] = useState(false);
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -553,12 +640,18 @@ export default function Home() {
   const requestGeneration = useRef(0);
   const restoredPlan = useRef<string | null>(null);
   const profile = useMemo(
-    () => enrichProfile(profileDataset(dataset), dictionary),
-    [dataset, dictionary],
+    () =>
+      enrichProfile(
+        preparedProfile?.id === dataset.id
+          ? preparedProfile.profile
+          : profileDataset(dataset),
+        dictionary,
+      ),
+    [dataset, dictionary, preparedProfile],
   );
   const scopeDataset = useMemo(
-    () => filterDataset(dataset, scopeFilters),
-    [dataset, scopeFilters],
+    () => filterDataset(dataset, scopeFilters, profile),
+    [dataset, scopeFilters, profile],
   );
   const scopedPlan = useMemo(
     () => ({ ...activePlan, filters: scopeFilters, filter: undefined }),
@@ -574,8 +667,14 @@ export default function Home() {
       });
     }
   }, [dataset, profile, scopedPlan]);
-  const proposalBasis = useMemo(() => JSON.stringify({ id: dataset.id, plan: scopedPlan, dictionary }), [dataset.id, scopedPlan, dictionary]);
-  const navigationTasks = useMemo(() => explorationTasks(dataset, profile, scopedPlan), [dataset, profile, scopedPlan]);
+  const proposalBasis = useMemo(
+    () => JSON.stringify({ id: dataset.id, plan: scopedPlan, dictionary }),
+    [dataset.id, scopedPlan, dictionary],
+  );
+  const navigationTasks = useMemo(
+    () => explorationTasks(dataset, profile, scopedPlan),
+    [dataset, profile, scopedPlan],
+  );
   const dimensions = profile.fields.filter((f) => f.type !== "number");
   const metrics = profile.fields.filter((f) => f.type === "number");
   const secondaryPlan = useMemo(() => {
@@ -687,6 +786,7 @@ export default function Home() {
     ];
   }, [profile]);
   useEffect(() => {
+    setShowGuide(localStorage.getItem("datapilot-guide-dismissed") !== "yes");
     let alive = true;
     readWorkspace<{
       dataset: Dataset;
@@ -697,13 +797,15 @@ export default function Home() {
       dictionary?: Dictionary;
       journey?: JourneyState;
     }>()
-      .then((value) => {
+      .then(async (value) => {
         if (
           alive &&
           value?.dataset?.columns?.length &&
           value.dataset.rows?.length
         ) {
-          const p = profileDataset(value.dataset);
+          const p = await backgroundTask<Profile>("profile", value.dataset);
+          if (!alive) return;
+          setPreparedProfile({ id: value.dataset.id, profile: p });
           setDataset(value.dataset);
           setJourney(restoreJourney(value.journey, value.dataset.id, p));
           setActivePlan(defaultPlan(p));
@@ -778,7 +880,16 @@ export default function Home() {
         .catch(() => setSaved(false));
     }, 300);
     return () => clearTimeout(id);
-  }, [dataset, entries, pins, scopeFilters, activePlan, dictionary, journey, ready]);
+  }, [
+    dataset,
+    entries,
+    pins,
+    scopeFilters,
+    activePlan,
+    dictionary,
+    journey,
+    ready,
+  ]);
   useEffect(() => {
     if (!ready) return;
     setProposal(null);
@@ -789,13 +900,30 @@ export default function Home() {
     }
     restoredPlan.current = null;
     setReplaying(false);
-    setJourney(previous => recordJourney(previous, dataset.id, scopedPlan, profile, crypto.randomUUID(), new Date().toISOString()));
+    setJourney((previous) =>
+      recordJourney(
+        previous,
+        dataset.id,
+        scopedPlan,
+        profile,
+        crypto.randomUUID(),
+        new Date().toISOString(),
+      ),
+    );
   }, [ready, scopedPlan, dataset.id]);
-  useEffect(() => { setProposal(null); }, [proposalBasis]);
-  useEffect(() => { if (assistantTab === "navigator") chatScroll.current?.scrollTo({top:0,behavior:"auto"}); }, [assistantTab]);
+  useEffect(() => {
+    setProposal(null);
+  }, [proposalBasis]);
+  useEffect(() => {
+    if (assistantTab === "navigator")
+      chatScroll.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [assistantTab]);
   useEffect(() => {
     if (!replaying) return;
-    if (journey.cursor >= journey.steps.length - 1) { setReplaying(false); return; }
+    if (journey.cursor >= journey.steps.length - 1) {
+      setReplaying(false);
+      return;
+    }
     const timer = setTimeout(() => restoreStep(journey.cursor + 1, true), 2400);
     return () => clearTimeout(timer);
   }, [replaying, journey]);
@@ -810,7 +938,10 @@ export default function Home() {
       block: "nearest",
     });
   }, [entries, busy, steps, proposal]);
-  function setNewDataset(next: Dataset) {
+  function setNewDataset(next: Dataset, prepared?: Profile) {
+    setPreparedProfile(prepared ? { id: next.id, profile: prepared } : null);
+    setClarification(null);
+    setPendingFile(null);
     requestGeneration.current++;
     abort.current?.abort();
     setBusy(false);
@@ -818,7 +949,7 @@ export default function Home() {
     setProposal(null);
     setReplaying(false);
     setDataset(next);
-    setActivePlan(defaultPlan(profileDataset(next)));
+    setActivePlan(defaultPlan(prepared || profileDataset(next)));
     setEntries([]);
     setScopeFilters([]);
     setPins([]);
@@ -839,23 +970,35 @@ export default function Home() {
   async function uploadFile(file?: File) {
     if (!file) return;
     if (file.size > LIMITS.bytes) {
-      setError("文件超过 5 MB，请精简后重试。");
+      setError("文件超过5 MB，请精简后重试。");
       return;
     }
-    if (!/\.(csv|tsv)$/i.test(file.name)) {
-      setError("请上传 CSV 或 TSV 文件。Excel 可另存为 CSV 后上传。");
+    if (!/\.(csv|tsv|xlsx)$/i.test(file.name)) {
+      setError("请上传 CSV、TSV 或 XLSX 文件。旧版 XLS 请另存为 XLSX。");
       return;
     }
+    setError("");
+    setPendingFile(file);
+    setDialog(null);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+  function applyChartRange(start: string, end: string) {
     try {
-      let text = await file.text();
-      if (text.includes("\uFFFD")) {
-        text = new TextDecoder("gb18030").decode(await file.arrayBuffer());
-      }
-      setNewDataset(parseCSV(text, file.name));
+      const first = start.length === 7 ? start + "-01" : start;
+      const last =
+        end.length === 7
+          ? new Date(
+              Date.UTC(Number(end.slice(0, 4)), Number(end.slice(5, 7)), 0),
+            )
+              .toISOString()
+              .slice(0, 10)
+          : end;
+      changeScope(
+        mergeFilters(scopeFilters, rangeFilters(scopedPlan, first, last)),
+      );
+      setToast("时间范围已联动到全部图表，可撤销或重置筛选");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "无法读取文件，请检查格式。");
-    } finally {
-      if (fileInput.current) fileInput.current.value = "";
+      setToast((e as Error).message);
     }
   }
   function exportReport() {
@@ -914,6 +1057,24 @@ export default function Home() {
     if (!q || busy) return;
     if (!scopeDataset.rows.length) {
       setError("当前筛选没有记录，请先调整或重置联动筛选。");
+      return;
+    }
+    const needed = clarifyQuestion(q, profile, dataset);
+    if (needed) {
+      setClarification(needed);
+      setAssistant(true);
+      setAssistantTab("chat");
+      if (window.innerWidth <= 900) setMobileChat(true);
+      return;
+    }
+    setClarification(null);
+    if (/环比|同比|周期对比|为什么.*下降|下降.*为什么|变化贡献/.test(q)) {
+      setView("workspace");
+      setTab("diagnostics");
+      setQuestion("");
+      setToast(
+        "已打开业务诊断，请确认指标、维度和两个周期；这里会计算全部分组贡献。",
+      );
       return;
     }
     setQuestion("");
@@ -976,8 +1137,20 @@ export default function Home() {
           if (type === "error") throw new Error(data.error);
           if (type === "step") setSteps((prev) => [...prev, data.label]);
           if (type === "result") {
-            const checked = proposeAnalysis(dataset, profile, scopedPlan, data.plan);
-            const next: Proposal = { question: q, ...checked, mode: data.mode === "model" ? "model" : "demo", origin: data.mode === "model" ? "model" : "demo", retrieved: data.retrieved, basis: proposalBasis };
+            const checked = proposeAnalysis(
+              dataset,
+              profile,
+              scopedPlan,
+              data.plan,
+            );
+            const next: Proposal = {
+              question: q,
+              ...checked,
+              mode: data.mode === "model" ? "model" : "demo",
+              origin: data.mode === "model" ? "model" : "demo",
+              retrieved: data.retrieved,
+              basis: proposalBasis,
+            };
             if (previewFirst) setProposal(next);
             else commitProposal(next);
             received = true;
@@ -1010,6 +1183,7 @@ export default function Home() {
     setPins([]);
     setScopeFilters([]);
     const next = cleanDataset(dataset, cleanOptions);
+    setPreparedProfile(null);
     setDataset(next);
     setActivePlan(defaultPlan(profileDataset(next)));
     setEntries([]);
@@ -1032,6 +1206,7 @@ export default function Home() {
     setReplaying(false);
     setProposal(null);
     setScopeFilters(filters);
+    setClarification(null);
     setPage(1);
   }
   function openAnalysis(plan: Plan) {
@@ -1050,18 +1225,40 @@ export default function Home() {
     validatePlan(next.plan, profile);
     const computed = executePlan(dataset, profile, next.plan);
     openAnalysis(next.plan);
-    setEntries(previous => [...previous, { id: crypto.randomUUID(), question: next.question, plan: next.plan, result: computed, mode: next.mode, origin: next.origin, retrieved: next.retrieved }].slice(-30));
+    setEntries((previous) =>
+      [
+        ...previous,
+        {
+          id: crypto.randomUUID(),
+          question: next.question,
+          plan: next.plan,
+          result: computed,
+          mode: next.mode,
+          origin: next.origin,
+          retrieved: next.retrieved,
+        },
+      ].slice(-30),
+    );
     setProposal(null);
     setToast("已应用分析计划，可在探索路线中回放");
   }
   function previewTask(task: ExplorationTask) {
     try {
       const checked = proposeAnalysis(dataset, profile, scopedPlan, task.plan);
-      setProposal({ ...checked, question: task.question, mode: "demo", origin: "navigator", retrieved: [task.plan.groupBy, task.plan.metric].filter(Boolean), basis: proposalBasis });
+      setProposal({
+        ...checked,
+        question: task.question,
+        mode: "demo",
+        origin: "navigator",
+        retrieved: [task.plan.groupBy, task.plan.metric].filter(Boolean),
+        basis: proposalBasis,
+      });
       setAssistant(true);
       setAssistantTab("chat");
       if (window.innerWidth <= 900) setMobileChat(true);
-    } catch (error) { setToast(error instanceof Error ? error.message : "无法预览此项建议"); }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "无法预览此项建议");
+    }
   }
   function restoreStep(index: number, continuePlaying = false) {
     const step = journey.steps[index];
@@ -1076,19 +1273,35 @@ export default function Home() {
     restoredPlan.current = planKey(step.plan);
     setScopeFilters(filtersForPlan(step.plan));
     setActivePlan(barePlan(step.plan));
-    setJourney(previous => ({ ...previous, cursor: index }));
+    setJourney((previous) => ({ ...previous, cursor: index }));
     setReplaying(continuePlaying);
     setView("workspace");
     setTab("overview");
     setPage(1);
   }
   async function checkModelHealth() {
-    setModelHealth({busy:true,message:"正在用固定样本验证模型工具调用…"});
+    setModelHealth({ busy: true, message: "正在用固定样本验证模型工具调用…" });
     try {
-      const response = await fetch("/api/model-health", {method:"POST",signal:AbortSignal.timeout(50000)});
-      const health = await response.json() as {ok?:boolean;message?:string};
-      setModelHealth({busy:false,ok:response.ok && health.ok === true,message:health.message || "验证未通过，请检查服务端配置。"});
-    } catch { setModelHealth({busy:false,ok:false,message:"连接超时或服务暂不可用，请稍后重试。"}); }
+      const response = await fetch("/api/model-health", {
+        method: "POST",
+        signal: AbortSignal.timeout(50000),
+      });
+      const health = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+      };
+      setModelHealth({
+        busy: false,
+        ok: response.ok && health.ok === true,
+        message: health.message || "验证未通过，请检查服务端配置。",
+      });
+    } catch {
+      setModelHealth({
+        busy: false,
+        ok: false,
+        message: "连接超时或服务暂不可用，请稍后重试。",
+      });
+    }
   }
   function pinCurrent() {
     if (pins.length >= 12) {
@@ -1137,10 +1350,19 @@ export default function Home() {
     <div
       className={`app-shell ${!assistant ? "assistant-hidden" : ""} ${mobileChat ? "mobile-chat-open" : ""}`}
     >
+      {pendingFile && (
+        <Suspense fallback={<ToolLoading />}>
+          <LazyImportWizard
+            file={pendingFile}
+            onClose={() => setPendingFile(null)}
+            onImport={setNewDataset}
+          />
+        </Suspense>
+      )}
       <input
         type="file"
         ref={fileInput}
-        accept=".csv,.tsv,text/csv,text/tab-separated-values"
+        accept=".csv,.tsv,.xlsx,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         hidden
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
           void uploadFile(e.target.files?.[0])
@@ -1420,10 +1642,58 @@ export default function Home() {
                   count={scopeDataset.rows.length}
                   onChange={changeScope}
                 />
-                <AnalysisJourney state={journey.datasetId === dataset.id ? journey : {datasetId:dataset.id,steps:[],cursor:-1}} playing={replaying}
+                {showGuide && (
+                  <div className="onboarding-strip">
+                    <strong>第一次探索？</strong>
+                    <button
+                      onClick={() => {
+                        setAssistant(true);
+                        setAssistantTab("chat");
+                        if (window.innerWidth <= 900) setMobileChat(true);
+                      }}
+                    >
+                      ① 提出一个问题
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTab("overview");
+                        setToast(
+                          "点击图表中的分组查看来源；分析证据卡可生成AI导读。",
+                        );
+                      }}
+                    >
+                      ② 核对分析证据
+                    </button>
+                    <button onClick={exportReport}>③ 导出分析报告</button>
+                    <button
+                      className="dismiss-guide"
+                      onClick={() => {
+                        localStorage.setItem(
+                          "datapilot-guide-dismissed",
+                          "yes",
+                        );
+                        setShowGuide(false);
+                      }}
+                    >
+                      知道了
+                    </button>
+                  </div>
+                )}
+                <AnalysisJourney
+                  state={
+                    journey.datasetId === dataset.id
+                      ? journey
+                      : { datasetId: dataset.id, steps: [], cursor: -1 }
+                  }
+                  playing={replaying}
                   onRestore={restoreStep}
-                  onPlay={() => { if (journey.cursor >= journey.steps.length - 1) restoreStep(0, true); else setReplaying(true); }}
-                  onPause={() => setReplaying(false)} />
+                  onPlay={() => {
+                    if (journey.cursor >= journey.steps.length - 1)
+                      restoreStep(0, true);
+                    else setReplaying(true);
+                  }}
+                  onPause={() => setReplaying(false)}
+                />
                 <div className="workspace-tabs">
                   <div role="tablist" aria-label="数据分析视图">
                     <button
@@ -1456,6 +1726,15 @@ export default function Home() {
                         {profile.fields.filter((f) => f.missing || f.invalid)
                           .length + (profile.duplicates > 0 ? 1 : 0)}
                       </span>
+                    </button>
+                    <button
+                      role="tab"
+                      aria-selected={tab === "diagnostics"}
+                      className={tab === "diagnostics" ? "selected" : ""}
+                      onClick={() => setTab("diagnostics")}
+                    >
+                      <Activity size={15} />
+                      业务诊断
                     </button>
                     <button
                       role="tab"
@@ -1841,6 +2120,13 @@ export default function Home() {
                       <DataChart
                         plan={activePlan}
                         result={result}
+                        onRange={
+                          profile.fields.find(
+                            (f) => f.name === activePlan.groupBy,
+                          )?.type === "date" && activePlan.sort === "natural"
+                            ? applyChartRange
+                            : undefined
+                        }
                         onPointClick={(name) => inspectGroup(scopedPlan, name)}
                       />
                       <div className="drill-strip">
@@ -1971,6 +2257,41 @@ export default function Home() {
                       </button>
                     </section>
                   </>
+                )}
+                {tab === "overview" && (
+                  <EvidenceGuide
+                    facts={analysisFacts(result, scopedPlan)}
+                    onSource={(fact) => {
+                      if (fact.group) inspectGroup(scopedPlan, fact.group);
+                      else {
+                        setEvidence({
+                          title: "当前分析范围 · 来源记录",
+                          dataset: scopeDataset,
+                        });
+                        setEvidenceFilter(null);
+                        setDialog("evidence");
+                      }
+                    }}
+                  />
+                )}
+                {tab === "diagnostics" && (
+                  <Suspense fallback={<ToolLoading />}>
+                    <LazyDiagnostics
+                      key={dataset.id}
+                      dataset={dataset}
+                      profile={profile}
+                      filters={scopeFilters}
+                      onInspect={(source, title) => {
+                        setEvidence({ title, dataset: source });
+                        setEvidenceFilter(null);
+                        setDialog("evidence");
+                      }}
+                      onExport={(name, text) => {
+                        download(name, text, "text/markdown;charset=utf-8");
+                        setToast("已导出完整周期诊断与口径");
+                      }}
+                    />
+                  </Suspense>
                 )}
                 {tab === "lab" && (
                   <ExplorationLab
@@ -2285,7 +2606,10 @@ export default function Home() {
                 >
                   <UploadCloud size={30} />
                   <h3>让下一份数据，也开口说话。</h3>
-                  <p>拖入 CSV / TSV，或点击选择文件。最多 5 MB、20,000 行。</p>
+                  <p>
+                    拖入 CSV / TSV / XLSX，或点击选择文件。最多 5 MB、20,000
+                    行。
+                  </p>
                   <button
                     className="button subtle"
                     onClick={() => {
@@ -2336,6 +2660,32 @@ export default function Home() {
                           </span>
                           <h3>{entry.question}</h3>
                           <p>{entry.result.summary}</p>
+                          <div className="source-actions">
+                            <button
+                              onClick={() => {
+                                setEvidence({
+                                  title: entry.plan.title + " · 来源记录",
+                                  dataset: filterDataset(
+                                    dataset,
+                                    filtersForPlan(entry.plan),
+                                  ),
+                                });
+                                setEvidenceFilter(null);
+                                setDialog("evidence");
+                              }}
+                            >
+                              查看来源记录
+                            </button>
+                            <button
+                              onClick={() => {
+                                openAnalysis(entry.plan);
+                                setTab("diagnostics");
+                                setMobileChat(false);
+                              }}
+                            >
+                              比较周期与贡献
+                            </button>
+                          </div>
                           <div className="report-tags">
                             <span>{entry.plan.groupBy}</span>
                             <span>
@@ -2379,7 +2729,7 @@ export default function Home() {
             <footer className="workspace-footer">
               <span>
                 <ShieldCheck size={12} />
-                数据留在本机，分析有据可查
+                原始数据留本机，分析有据可查
               </span>
               <span>
                 数问 DataPilot <i /> 为每一个好奇的问题
@@ -2419,134 +2769,217 @@ export default function Home() {
                 <span>{dataset.name}</span>
                 <Check size={13} />
               </div>
-              <div className="assistant-tabs" role="tablist" aria-label="助手工作模式">
-                <button role="tab" aria-selected={assistantTab === "chat"} onClick={() => setAssistantTab("chat")}><MessageSquare size={13}/>对话助手</button>
-                <button role="tab" aria-selected={assistantTab === "navigator"} onClick={() => setAssistantTab("navigator")}><WandSparkles size={13}/>探索导航</button>
+              <div
+                className="assistant-tabs"
+                role="tablist"
+                aria-label="助手工作模式"
+              >
+                <button
+                  role="tab"
+                  aria-selected={assistantTab === "chat"}
+                  onClick={() => setAssistantTab("chat")}
+                >
+                  <MessageSquare size={13} />
+                  对话助手
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={assistantTab === "navigator"}
+                  onClick={() => setAssistantTab("navigator")}
+                >
+                  <WandSparkles size={13} />
+                  探索导航
+                </button>
               </div>
               <div className="chat-scroll" ref={chatScroll}>
-                {assistantTab === "navigator" ? <ExplorationNavigator tasks={navigationTasks} count={scopeDataset.rows.length} disabled={busy} onPreview={previewTask} onAsk={(question) => void ask(question)}/> : <>
-                <div className="assistant-intro">
-                  <div className="intro-orbit">
-                    <Brand />
-                  </div>
-                  <h2>你好，数据探索者。</h2>
-                  <p>
-                    我是你的分析搭档。
-                    <br />
-                    说说你想了解什么，
-                    <br />
-                    让我们一起找到数据中的答案。
-                  </p>
-                  <div className="intro-meta">
-                    <span>{profile.columnCount} 个字段已就绪</span>
-                    <span>可追溯的计算结果</span>
-                  </div>
-                </div>
-                <div className="starter-title">
-                  <Sparkles size={13} />
-                  不妨从这里开始
-                </div>
-                <div className="starter-list">
-                  {starters.map((s, i) => (
-                    <button key={s} onClick={() => void ask(s)} disabled={busy}>
-                      <span>
-                        {i === 0 ? (
-                          <TrendingUp size={15} />
-                        ) : i === 1 ? (
-                          <BarChart3 size={15} />
-                        ) : (
-                          <Braces size={15} />
-                        )}
-                      </span>
-                      {s}
-                      <ArrowUpRight size={13} />
-                    </button>
-                  ))}
-                </div>
-                {entries.length > 0 && (
-                  <div className="chat-divider">
-                    <span>本次探索</span>
-                  </div>
-                )}
-                {entries.map((entry) => (
-                  <div className="chat-exchange" key={entry.id}>
-                    <div className="user-message">{entry.question}</div>
-                    <div className="assistant-message">
-                      <div className="message-brand">
-                        <Brand small />
-                        <span>数问</span>
-                        <small>
-                          {entry.origin === "navigator" ? "数据导航" : entry.mode === "model" ? "模型规划" : "演示规划"}
-                        </small>
+                {assistantTab === "navigator" ? (
+                  <ExplorationNavigator
+                    tasks={navigationTasks}
+                    count={scopeDataset.rows.length}
+                    disabled={busy}
+                    onPreview={previewTask}
+                    onAsk={(question) => void ask(question)}
+                  />
+                ) : (
+                  <>
+                    <div className="assistant-intro">
+                      <div className="intro-orbit">
+                        <Brand />
                       </div>
-                      <p>{entry.result.summary}</p>
+                      <h2>你好，数据探索者。</h2>
+                      <p>
+                        我是你的分析搭档。
+                        <br />
+                        说说你想了解什么，
+                        <br />
+                        让我们一起找到数据中的答案。
+                      </p>
+                      <div className="intro-meta">
+                        <span>{profile.columnCount} 个字段已就绪</span>
+                        <span>可追溯的计算结果</span>
+                      </div>
+                    </div>
+                    <div className="comparison-nudge">
                       <button
-                        className="analysis-result-card"
                         onClick={() => {
-                          openAnalysis(entry.plan);
                           setView("workspace");
-                          setTab("overview");
+                          setTab("diagnostics");
+                          setMobileChat(false);
                         }}
                       >
-                        <BarChart3 size={19} />
-                        <span>
-                          <strong>{entry.plan.title}</strong>
-                          <small>
-                            {entry.result.validRows.toLocaleString()} 条记录 ·
-                            点击查看图表
-                          </small>
-                        </span>
-                        <ArrowUpRight size={14} />
+                        周期对比与变化贡献 →
                       </button>
-                      <details className="evidence-details">
-                        <summary>
-                          <ShieldCheck size={12} />
-                          查看分析依据 <ChevronDown size={12} />
-                        </summary>
-                        <p>
-                          相关字段：{entry.retrieved.join("、")}。<br />
-                          计算方式：{entry.plan.aggregate}(
-                          {entry.plan.metric || "*"})，按{entry.plan.groupBy}
-                          分组。
-                          <br />
-                          排除无效指标：{entry.result.excluded}{" "}
-                          条。统计由本地引擎实际执行。
-                        </p>
-                      </details>
-                      {entry.id === entries[entries.length - 1]?.id && (
-                        <div className="followup-actions">
-                          {activePlan.metric && (
-                            <button
-                              disabled={busy}
-                              onClick={() => void ask("改成均值")}
-                            >
-                              改成均值
-                            </button>
-                          )}
-                          {dimensions.find(
-                            (f) =>
-                              f.name !== activePlan.groupBy &&
-                              f.type === "text" &&
-                              f.unique < 30,
-                          ) && (
-                            <button
-                              disabled={busy}
-                              onClick={() =>
-                                void ask(
-                                  `再按${dimensions.find((f) => f.name !== activePlan.groupBy && f.type === "text" && f.unique < 30)!.name}看${activePlan.metric || "记录数"}`,
-                                )
-                              }
-                            >
-                              换个维度继续看 <ArrowRight size={9} />
-                            </button>
+                    </div>
+                    <div className="starter-title">
+                      <Sparkles size={13} />
+                      不妨从这里开始
+                    </div>
+                    <div className="starter-list">
+                      {starters.map((s, i) => (
+                        <button
+                          key={s}
+                          onClick={() => void ask(s)}
+                          disabled={busy}
+                        >
+                          <span>
+                            {i === 0 ? (
+                              <TrendingUp size={15} />
+                            ) : i === 1 ? (
+                              <BarChart3 size={15} />
+                            ) : (
+                              <Braces size={15} />
+                            )}
+                          </span>
+                          {s}
+                          <ArrowUpRight size={13} />
+                        </button>
+                      ))}
+                    </div>
+                    {entries.length > 0 && (
+                      <div className="chat-divider">
+                        <span>本次探索</span>
+                      </div>
+                    )}
+                    {entries.map((entry) => (
+                      <div className="chat-exchange" key={entry.id}>
+                        <div className="user-message">{entry.question}</div>
+                        <div className="assistant-message">
+                          <div className="message-brand">
+                            <Brand small />
+                            <span>数问</span>
+                            <small>
+                              {entry.origin === "navigator"
+                                ? "数据导航"
+                                : entry.mode === "model"
+                                  ? "模型规划"
+                                  : "演示规划"}
+                            </small>
+                          </div>
+                          <p>{entry.result.summary}</p>
+                          <button
+                            className="analysis-result-card"
+                            onClick={() => {
+                              openAnalysis(entry.plan);
+                              setView("workspace");
+                              setTab("overview");
+                            }}
+                          >
+                            <BarChart3 size={19} />
+                            <span>
+                              <strong>{entry.plan.title}</strong>
+                              <small>
+                                {entry.result.validRows.toLocaleString()} 条记录
+                                · 点击查看图表
+                              </small>
+                            </span>
+                            <ArrowUpRight size={14} />
+                          </button>
+                          <details className="evidence-details">
+                            <summary>
+                              <ShieldCheck size={12} />
+                              查看分析依据 <ChevronDown size={12} />
+                            </summary>
+                            <p>
+                              相关字段：{entry.retrieved.join("、")}。<br />
+                              计算方式：{entry.plan.aggregate}(
+                              {entry.plan.metric || "*"})，按
+                              {entry.plan.groupBy}
+                              分组。
+                              <br />
+                              排除无效指标：{entry.result.excluded}{" "}
+                              条。统计由本地引擎实际执行。
+                            </p>
+                          </details>
+                          {entry.id === entries[entries.length - 1]?.id && (
+                            <div className="followup-actions">
+                              {activePlan.metric && (
+                                <button
+                                  disabled={busy}
+                                  onClick={() => void ask("改成均值")}
+                                >
+                                  改成均值
+                                </button>
+                              )}
+                              {dimensions.find(
+                                (f) =>
+                                  f.name !== activePlan.groupBy &&
+                                  f.type === "text" &&
+                                  f.unique < 30,
+                              ) && (
+                                <button
+                                  disabled={busy}
+                                  onClick={() =>
+                                    void ask(
+                                      `再按${dimensions.find((f) => f.name !== activePlan.groupBy && f.type === "text" && f.unique < 30)!.name}看${activePlan.metric || "记录数"}`,
+                                    )
+                                  }
+                                >
+                                  换个维度继续看 <ArrowRight size={9} />
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {clarification && (
+                  <div className="clarification-card" role="status">
+                    <strong>先确认分析口径</strong>
+                    <p>{clarification.reason}</p>
+                    <small>原问题：{clarification.question}</small>
+                    {clarification.choices.map((c) => (
+                      <button
+                        key={c.label}
+                        onClick={() => void ask(c.question)}
+                      >
+                        {c.label} →
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setQuestion(clarification.question);
+                        setClarification(null);
+                      }}
+                    >
+                      返回修改问题
+                    </button>
                   </div>
-                ))}
-                </>}
-                {proposal && <PlanReview question={proposal.question} plan={proposal.plan} result={proposal.result} mode={proposal.origin} onApply={() => commitProposal(proposal)} onDiscard={() => {setProposal(null);setToast("已放弃计划，工作台保持原口径");}}/>}
+                )}
+                {proposal && (
+                  <PlanReview
+                    question={proposal.question}
+                    plan={proposal.plan}
+                    result={proposal.result}
+                    mode={proposal.origin}
+                    onApply={() => commitProposal(proposal)}
+                    onDiscard={() => {
+                      setProposal(null);
+                      setToast("已放弃计划，工作台保持原口径");
+                    }}
+                  />
+                )}
                 {busy && (
                   <div className="analysis-progress" role="status">
                     <div>
@@ -2589,7 +3022,14 @@ export default function Home() {
                 <div ref={chatBottom} />
               </div>
               <div className="composer-area">
-                <label className="preview-preference"><input type="checkbox" checked={previewFirst} onChange={(event) => setPreviewFirst(event.target.checked)}/>先确认分析计划</label>
+                <label className="preview-preference">
+                  <input
+                    type="checkbox"
+                    checked={previewFirst}
+                    onChange={(event) => setPreviewFirst(event.target.checked)}
+                  />
+                  先确认分析计划
+                </label>
                 <div className="composer">
                   <textarea
                     ref={input}
@@ -2831,7 +3271,7 @@ export default function Home() {
               <UploadCloud size={30} />
             </span>
             <h3>将文件拖到这里</h3>
-            <p>支持 CSV / TSV，兼容 UTF-8 与常见中文编码</p>
+            <p>支持 CSV / TSV / XLSX，兼容 UTF-8 与常见中文编码</p>
             <button
               className="button primary"
               onClick={() => fileInput.current?.click()}
@@ -2854,6 +3294,22 @@ export default function Home() {
           </div>
           <div className="sample-link">
             <span>还没有准备好数据？</span>
+            <div className="scenario-grid">
+              <button className="scenario-card" onClick={resetDemo}>
+                <strong>电商经营场景</strong>
+                <small>合成演示数据 · 地区销售、利润、品类分析</small>
+              </button>
+              <button
+                className="scenario-card"
+                onClick={() => {
+                  setNewDataset(campusScenario());
+                  setTab("diagnostics");
+                }}
+              >
+                <strong>校园消费场景</strong>
+                <small>合成演示数据 · 场所消费、周期对比、消费贡献</small>
+              </button>
+            </div>
             <button className="text-button" onClick={resetDemo}>
               使用零售演示数据 <ArrowRight size={13} />
             </button>
@@ -2871,7 +3327,7 @@ export default function Home() {
               [
                 "01",
                 "导入一份数据",
-                "选择含表头的 CSV / TSV。文件留在当前浏览器，支持最多 20,000 行。",
+                "选择含表头的 CSV / TSV / XLSX。文件留在当前浏览器，支持最多 20,000 行。",
               ],
               [
                 "02",
@@ -2941,9 +3397,30 @@ export default function Home() {
               <span>默认 deepseek-flash，可按服务商调整</span>
             </div>
             <div className="model-health">
-              <button className="button subtle" disabled={mode !== "model" || modelHealth.busy} onClick={() => void checkModelHealth()}>{modelHealth.busy ? <LoaderCircle size={14} className="spin"/> : <ShieldCheck size={14}/>}验证真实模型连接</button>
-              <p>使用 2 行固定合成样本验证工具调用，会消耗少量模型额度；不会发送当前数据。</p>
-              {modelHealth.message && <div role="status" className={`model-health-result ${modelHealth.ok === false ? "failed" : ""}`}>{modelHealth.message}</div>}
+              <button
+                className="button subtle"
+                disabled={mode !== "model" || modelHealth.busy}
+                onClick={() => void checkModelHealth()}
+              >
+                {modelHealth.busy ? (
+                  <LoaderCircle size={14} className="spin" />
+                ) : (
+                  <ShieldCheck size={14} />
+                )}
+                验证真实模型连接
+              </button>
+              <p>
+                使用 2
+                行固定合成样本验证工具调用，会消耗少量模型额度；不会发送当前数据。
+              </p>
+              {modelHealth.message && (
+                <div
+                  role="status"
+                  className={`model-health-result ${modelHealth.ok === false ? "failed" : ""}`}
+                >
+                  {modelHealth.message}
+                </div>
+              )}
             </div>
           </div>
           <div className="settings-section">
