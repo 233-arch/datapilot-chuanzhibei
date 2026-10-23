@@ -242,6 +242,12 @@ export async function createPlan(
     signal: context?.signal ? AbortSignal.any([context.signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
     body: JSON.stringify({
       model: config.model || "deepseek-flash",
+      // DeepSeek enables thinking by default, which rejects a named tool_choice.
+      // Our single-plan workflow uses non-thinking tool calls; other providers
+      // must not receive this DeepSeek-specific parameter.
+      ...(url.hostname === "api.deepseek.com"
+        ? { thinking: { type: "disabled" } }
+        : {}),
       messages: [
         {
           role: "system",

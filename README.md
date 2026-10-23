@@ -20,7 +20,7 @@
 
 公开评审仓库：[233-arch/datapilot-chuanzhibei](https://github.com/233-arch/datapilot-chuanzhibei)，默认分支 `main`，保留完整真实开发历史。评委可直接访问源码、环境模板和 `output/pdf/` 中的技术说明。
 
-截至 2026-10-22，仍缺真实模型实测、团队信息、实际 5-8 分钟 1080p 普通话 MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+截至 2026-10-23，DeepSeek真实模型固定集已通过6/6；仍缺完整团队信息、实际5-8分钟1080p普通话MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
 
 ## 评审入口与复现
 
@@ -33,7 +33,7 @@ npm run dev
 
 需要 Node.js >=22.13.0，推荐 Node.js 24。无密钥可运行明确标记的演示模式；真实模型在服务端配置。不要在公开仓库中填写密钥。
 
-[自动检查记录](https://github.com/233-arch/datapilot-chuanzhibei/actions) 包含类型检查、58项业务测试、7项仓库验证测试、源码及历史扫描和生产构建。实际运行结果以 Actions 页面为准；仅有工作流文件不代表远程检查已通过。
+[自动检查记录](https://github.com/233-arch/datapilot-chuanzhibei/actions) 包含类型检查、59项业务测试、7项仓库验证测试、源码及历史扫描和生产构建。实际运行结果以 Actions 页面为准；仅有工作流文件不代表远程检查已通过。
 
 `npm run verify:repository` 会匿名核对公开仓库的默认分支、当前提交与必要材料，并生成 `outputs/repository-access.json`。只有验证通过才更新本机评审记录；仅填写 URL 与时间不能通过提交检查。
 
@@ -99,7 +99,7 @@ DATA_MODEL_NAME=deepseek-flash
 
 托管环境使用平台环境变量管理，密钥标记为 secret。适配器需要支持 `tools` / `tool_choice` 的 Chat Completions 服务。基础 URL 不含 `/chat/completions`；供应商需要 `/v1` 时包含 `/v1`。模型名可按供应商调整。
 
-**本轮没有真实服务商密钥，真实计费 API 未实测；已验证模拟模型响应的协议、错误和非法计划处理。**
+**2026-10-23 已用 DeepSeek `deepseek-flash` 完成6道真实服务固定题，计划与实际聚合结果全部通过。** 证据见 `docs/evidence/deepseek-evaluation.json`；这是8行合成样本回归，不代表通用准确率。官方端点为指定工具调用显式设置 `thinking: { type: "disabled" }`，其他兼容服务不发送此专用字段。密钥只存在本机忽略文件与托管端加密配置。
 
 ## 验证与构建
 
@@ -157,4 +157,4 @@ node scripts/run-framework.mjs build
 
 赛道：https://www.boxuegu.com/matchTrack/detail/?id=10037
 
-Git 如实保留开发过程，不补造最初提交前不存在的历史。视频脚本不等于已录制视频，真实模型效果需配置后实测。
+Git 如实保留开发过程，不补造最初提交前不存在的历史。视频脚本不等于已录制视频，真实模型固定集已通过，后续修改规划源码后必须重新实测。

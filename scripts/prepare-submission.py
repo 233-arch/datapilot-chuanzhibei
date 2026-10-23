@@ -27,7 +27,7 @@ files = {
 }
 for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "演示脚本.md"]:
     files[ROOT / "docs" / name] = "documents/" + name
-for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
+for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "hosted-model-verification.json", "model-secret-scan.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
     candidate = OUT / name
     if candidate.exists():
         files[candidate] = "evidence/" + name

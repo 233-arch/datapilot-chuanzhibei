@@ -142,8 +142,10 @@ add(
     : "optional",
   "在线演示为可选加分项；当前私人站点并不代表评审已获得访问。保持原访问范围，待确定评审方式。",
 );
+const checkedAt = new Date();
+const checkedDate = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Shanghai"}).format(checkedAt);
 const report = {
-  checkedAt: new Date().toISOString(),
+  checkedAt: checkedAt.toISOString(),
   ruleCheckedOn: "2026-10-22",
   ruleUrl: "https://www.boxuegu.com/matchTrack/detail/?id=10037",
   ready: checks.every((c) => c.status === "pass" || c.status === "optional"),
@@ -155,7 +157,7 @@ mkdirSync("outputs", { recursive: true });
 writeFileSync("outputs/submission-audit.json", JSON.stringify(report, null, 2));
 writeFileSync(
   "outputs/提交检查结果.md",
-  `# 提交检查结果\n\n检查日期：2026-10-22（北京时间）\n\n当前结论：${report.ready ? "材料检查通过，仍需参赛者复核后提交" : "尚未满足直接提交条件"}\n\n|检查项|状态|说明|\n|---|---|---|\n${checks.map((c) => `|${c.id}|${c.status}|${c.detail}|`).join("\n")}\n\n${report.notice}\n`,
+  `# 提交检查结果\n\n检查日期：${checkedDate}（北京时间）\n\n当前结论：${report.ready ? "材料检查通过，仍需参赛者复核后提交" : "尚未满足直接提交条件"}\n\n|检查项|状态|说明|\n|---|---|---|\n${checks.map((c) => `|${c.id}|${c.status}|${c.detail}|`).join("\n")}\n\n${report.notice}\n`,
 );
 for (const c of checks)
   console.log(`${c.status.toUpperCase()} ${c.id}: ${c.detail}`);

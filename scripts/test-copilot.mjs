@@ -98,4 +98,17 @@ await test("Provider endpoint rejects credentials and non-HTTP loopback protocol
     await assert.rejects(a.createPlan("各地区金额合计",profile,{key:"mock-only",url},async () => {throw new Error("must not fetch");}),/HTTPS/);
   }
 });
+await test("DeepSeek forced tool calls disable default thinking without changing other providers", async () => {
+  for (const base of ["https://api.deepseek.com", "https://api.deepseek.com/v1", "https://example.invalid/v1"]) {
+    let body;
+    const answer = await a.createPlan("按地区统计金额合计",profile,{key:"mock-only",url:base},async (_url,options) => {
+      body = JSON.parse(options.body);
+      return Response.json({choices:[{message:{tool_calls:[{function:{name:"create_analysis_plan",arguments:JSON.stringify(plan)}}]}}]});
+    });
+    assert.equal(answer.mode,"model");
+    assert.equal(body.tool_choice.function.name,"create_analysis_plan");
+    if (new URL(base).hostname === "api.deepseek.com") assert.deepEqual(body.thinking,{type:"disabled"});
+    else assert.equal(Object.hasOwn(body,"thinking"),false);
+  }
+});
 console.log(`\n${count} copilot checks passed.`);
