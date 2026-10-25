@@ -1,5 +1,6 @@
 import { createPlan, requestSchema } from "@/lib/agent";
 import { modelConfig as config } from "@/lib/model-config";
+import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
       { status: 400, headers },
     );
   }
+  const gate = config().key ? acquireAssistant(request) : { release: () => {} };
+  if (gate.response) return gate.response;
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -67,6 +70,7 @@ export async function POST(request: Request) {
                   : "分析失败，请重试。",
         });
       } finally {
+        gate.release();
         controller.close();
       }
     },

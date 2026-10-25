@@ -61,6 +61,32 @@ add(
     : "blocked",
   "需运行 npm run eval:model 获得当前源码的真实服务固定题集证据；无密钥、演示或失败不记作通过。",
 );
+const intelligence = read("outputs/intelligence-evaluation.json");
+const intelligenceHash = createHash("sha256");
+for (const name of [
+  "data-engine",
+  "diagnostics",
+  "workbench",
+  "knowledge",
+  "model-tool",
+  "agent",
+  "workflow-model",
+  "knowledge-model",
+])
+  intelligenceHash.update(readFileSync("lib/" + name + ".ts"));
+intelligenceHash.update(readFileSync("scripts/eval-intelligence.mjs"));
+add(
+  "intelligenceModel",
+  intelligence?.format === "datapilot-intelligence-evaluation" &&
+    intelligence?.sourceFingerprint === intelligenceHash.digest("hex") &&
+    intelligence?.status === "passed" &&
+    intelligence?.realModelCases === 9 &&
+    intelligence?.passed === intelligence?.total &&
+    intelligence?.total === 10
+    ? "pass"
+    : "blocked",
+  "v0.6多步骤规划和知识问答需匹配当前源码的9项真实模型及1项本机检查；这是已宣称功能的项目验证，不是新增官方必交材料。",
+);
 add(
   "source",
   ["README.md", ".env.example", "package-lock.json", "docs/技术文档.md"].every(
@@ -143,10 +169,12 @@ add(
   "在线演示为可选加分项；当前私人站点并不代表评审已获得访问。保持原访问范围，待确定评审方式。",
 );
 const checkedAt = new Date();
-const checkedDate = new Intl.DateTimeFormat("sv-SE", {timeZone:"Asia/Shanghai"}).format(checkedAt);
+const checkedDate = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Shanghai",
+}).format(checkedAt);
 const report = {
   checkedAt: checkedAt.toISOString(),
-  ruleCheckedOn: "2026-10-22",
+  ruleCheckedOn: "2026-10-25",
   ruleUrl: "https://www.boxuegu.com/matchTrack/detail/?id=10037",
   ready: checks.every((c) => c.status === "pass" || c.status === "optional"),
   checks,

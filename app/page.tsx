@@ -112,6 +112,16 @@ import {
 import { EvidenceGuide } from "@/components/exploration/evidence-guide";
 import { backgroundTask } from "@/lib/background";
 import { campusScenario } from "@/lib/scenarios";
+import {
+  type WorkspaceTools,
+  defaultTools,
+  restoreTools,
+} from "@/lib/workspace-tools";
+const LazyIntelligence = lazy(() =>
+  import("@/components/exploration/intelligence").then((m) => ({
+    default: m.IntelligenceWorkspace,
+  })),
+);
 const LazyDiagnostics = lazy(() =>
   import("@/components/exploration/diagnostics").then((m) => ({
     default: m.Diagnostics,
@@ -221,7 +231,13 @@ type Proposal = Omit<Entry, "id"> & {
   basis: string;
   origin: "model" | "demo" | "navigator";
 };
-type Tab = "overview" | "preview" | "quality" | "lab" | "diagnostics";
+type Tab =
+  | "overview"
+  | "preview"
+  | "quality"
+  | "lab"
+  | "diagnostics"
+  | "intelligence";
 type View = "workspace" | "datasets" | "reports";
 type Dialog =
   | "upload"
@@ -568,6 +584,9 @@ function Modal({
 }
 export default function Home() {
   const [dataset, setDataset] = useState<Dataset>(initialDataset);
+  const [tools, setTools] = useState<WorkspaceTools>(() =>
+    defaultTools(initialDataset, profileDataset(initialDataset)),
+  );
   const [entries, setEntries] = useState<Entry[]>([]);
   const [scopeFilters, setScopeFilters] = useState<FilterClause[]>([]);
   const [pins, setPins] = useState<PinnedInsight[]>([]);
@@ -632,6 +651,7 @@ export default function Home() {
   const [undoEntries, setUndoEntries] = useState<Entry[]>([]);
   const [undoPins, setUndoPins] = useState<PinnedInsight[]>([]);
   const [undoFilters, setUndoFilters] = useState<FilterClause[]>([]);
+  const [undoTools, setUndoTools] = useState<WorkspaceTools | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const chatBottom = useRef<HTMLDivElement>(null);
@@ -796,6 +816,8 @@ export default function Home() {
       plan?: Plan;
       dictionary?: Dictionary;
       journey?: JourneyState;
+      tools?: WorkspaceTools;
+      tab?: Tab;
     }>()
       .then(async (value) => {
         if (
@@ -807,6 +829,18 @@ export default function Home() {
           if (!alive) return;
           setPreparedProfile({ id: value.dataset.id, profile: p });
           setDataset(value.dataset);
+          setTools(restoreTools(value.tools, value.dataset, p));
+          if (
+            [
+              "overview",
+              "preview",
+              "quality",
+              "lab",
+              "diagnostics",
+              "intelligence",
+            ].includes(value.tab || "")
+          )
+            setTab(value.tab!);
           setJourney(restoreJourney(value.journey, value.dataset.id, p));
           setActivePlan(defaultPlan(p));
           setEntries(value.entries || []);
@@ -875,6 +909,8 @@ export default function Home() {
         plan: activePlan,
         dictionary,
         journey,
+        tools,
+        tab,
       })
         .then(() => setSaved(true))
         .catch(() => setSaved(false));
@@ -888,8 +924,14 @@ export default function Home() {
     activePlan,
     dictionary,
     journey,
+    tools,
+    tab,
     ready,
   ]);
+  useEffect(() => {
+    if (tools.datasetId !== dataset.id)
+      setTools(defaultTools(dataset, profile));
+  }, [dataset.id, tools.datasetId, profile]);
   useEffect(() => {
     if (!ready) return;
     setProposal(null);
@@ -949,6 +991,7 @@ export default function Home() {
     setProposal(null);
     setReplaying(false);
     setDataset(next);
+    setTools(defaultTools(next, prepared || profileDataset(next)));
     setActivePlan(defaultPlan(prepared || profileDataset(next)));
     setEntries([]);
     setScopeFilters([]);
@@ -958,6 +1001,7 @@ export default function Home() {
     setUndoPins([]);
     setUndoFilters([]);
     setUndo(null);
+    setUndoTools(null);
     setUndoEntries([]);
     setSearch("");
     setPage(1);
@@ -1068,13 +1112,19 @@ export default function Home() {
       return;
     }
     setClarification(null);
-    if (/环比|同比|周期对比|为什么.*下降|下降.*为什么|变化贡献/.test(q)) {
+    if (
+      /环比|同比|周期对比|为什么.*下降|下降.*为什么|变化贡献|拆解变化|拆解.*变化/.test(
+        q,
+      )
+    ) {
       setView("workspace");
-      setTab("diagnostics");
+      setTab("intelligence");
+      setTools((previous) => ({
+        ...previous,
+        workflow: { question: q, plan: null },
+      }));
       setQuestion("");
-      setToast(
-        "已打开业务诊断，请确认指标、维度和两个周期；这里会计算全部分组贡献。",
-      );
+      setToast("已转给多步骤助手。生成计划后请确认指标与周期，再逐步执行。");
       return;
     }
     setQuestion("");
@@ -1180,9 +1230,11 @@ export default function Home() {
     setUndoEntries(entries);
     setUndoPins(pins);
     setUndoFilters(scopeFilters);
+    setUndoTools(tools);
     setPins([]);
     setScopeFilters([]);
     const next = cleanDataset(dataset, cleanOptions);
+    setTools(defaultTools(next, profileDataset(next)));
     setPreparedProfile(null);
     setDataset(next);
     setActivePlan(defaultPlan(profileDataset(next)));
@@ -1738,6 +1790,15 @@ export default function Home() {
                     </button>
                     <button
                       role="tab"
+                      aria-selected={tab === "intelligence"}
+                      className={tab === "intelligence" ? "selected" : ""}
+                      onClick={() => setTab("intelligence")}
+                    >
+                      <Sparkles size={15} />
+                      智能分析
+                    </button>
+                    <button
+                      role="tab"
                       aria-selected={tab === "lab"}
                       className={tab === "lab" ? "selected" : ""}
                       onClick={() => setTab("lab")}
@@ -2281,6 +2342,14 @@ export default function Home() {
                       dataset={dataset}
                       profile={profile}
                       filters={scopeFilters}
+                      state={tools.diagnostic}
+                      onChange={(diagnostic) =>
+                        setTools((previous) => ({ ...previous, diagnostic }))
+                      }
+                      savedMetrics={tools.metrics}
+                      onMetricsChange={(metrics) =>
+                        setTools((previous) => ({ ...previous, metrics }))
+                      }
                       onInspect={(source, title) => {
                         setEvidence({ title, dataset: source });
                         setEvidenceFilter(null);
@@ -2289,6 +2358,43 @@ export default function Home() {
                       onExport={(name, text) => {
                         download(name, text, "text/markdown;charset=utf-8");
                         setToast("已导出完整周期诊断与口径");
+                      }}
+                    />
+                  </Suspense>
+                )}
+                {tab === "intelligence" && (
+                  <Suspense fallback={<ToolLoading />}>
+                    <LazyIntelligence
+                      key={dataset.id}
+                      dataset={dataset}
+                      profile={profile}
+                      filters={scopeFilters}
+                      tools={tools}
+                      onChange={(patch) =>
+                        setTools((previous) => ({ ...previous, ...patch }))
+                      }
+                      onInspect={(source, title) => {
+                        setEvidence({ title, dataset: source });
+                        setEvidenceFilter(null);
+                        setDialog("evidence");
+                      }}
+                      onExport={(name, text) => {
+                        download(name, text, "text/markdown;charset=utf-8");
+                        setToast("已导出完整分析报告与来源口径");
+                      }}
+                      onOpenDiagnostic={(plan) => {
+                        setTools((previous) => ({
+                          ...previous,
+                          diagnostic: {
+                            ...previous.diagnostic,
+                            date: plan.date,
+                            metric: plan.metric,
+                            dimension: plan.dimensions[0],
+                            current: plan.current,
+                            previous: plan.previous,
+                          },
+                        }));
+                        setTab("diagnostics");
                       }}
                     />
                   </Suspense>
@@ -2473,6 +2579,7 @@ export default function Home() {
                               className="button subtle"
                               onClick={() => {
                                 setDataset(undo);
+                                if (undoTools) setTools(undoTools);
                                 setEntries(undoEntries);
                                 setPins(undoPins);
                                 setScopeFilters(undoFilters);

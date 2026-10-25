@@ -1,0 +1,271 @@
+{
+  "checkedAt": "2026-10-25T11:57:22.796Z",
+  "format": "datapilot-intelligence-evaluation",
+  "sourceFingerprint": "4007fbec3ae598d5c6f6220663aa45733167218ce41f9bc6ab38150cf6a4330b",
+  "model": "deepseek-flash",
+  "status": "passed",
+  "total": 10,
+  "passed": 10,
+  "realModelCases": 9,
+  "syntheticFixtures": true,
+  "notice": "固定合成样本。9项真实服务检查与1项无命中本机检查，不代表通用准确率或真实用户效果。",
+  "cases": [
+    {
+      "label": "明确周期与两维销售额",
+      "passed": true,
+      "mode": "model",
+      "plan": {
+        "title": "2026年2月与1月销售额合计对比：按地区与产品类别拆解",
+        "date": "日期",
+        "metric": "销售额",
+        "dimensions": [
+          "地区",
+          "产品类别"
+        ],
+        "current": {
+          "start": "2026-02-01",
+          "end": "2026-02-28"
+        },
+        "previous": {
+          "start": "2026-01-01",
+          "end": "2026-01-31"
+        },
+        "knowledgeIds": []
+      },
+      "actualDelta": 3990,
+      "expectedDelta": 3990,
+      "latencyMs": 1262,
+      "usage": {
+        "input": 1245,
+        "output": 201
+      }
+    },
+    {
+      "label": "利润变化与渠道分解",
+      "passed": true,
+      "mode": "model",
+      "plan": {
+        "title": "2026年2月与2026年1月利润合计对比（按地区、渠道拆解）",
+        "date": "日期",
+        "metric": "利润",
+        "dimensions": [
+          "地区",
+          "渠道"
+        ],
+        "current": {
+          "start": "2026-02-01",
+          "end": "2026-02-28"
+        },
+        "previous": {
+          "start": "2026-01-01",
+          "end": "2026-01-31"
+        },
+        "knowledgeIds": []
+      },
+      "actualDelta": 399,
+      "expectedDelta": 399,
+      "latencyMs": 1054,
+      "usage": {
+        "input": 1234,
+        "output": 203
+      }
+    },
+    {
+      "label": "保留华东全局范围",
+      "passed": true,
+      "mode": "model",
+      "plan": {
+        "title": "2026年2月与2026年1月销售额合计对比（按产品类别拆解）",
+        "date": "日期",
+        "metric": "销售额",
+        "dimensions": [
+          "产品类别"
+        ],
+        "current": {
+          "start": "2026-02-01",
+          "end": "2026-02-28"
+        },
+        "previous": {
+          "start": "2026-01-01",
+          "end": "2026-01-31"
+        },
+        "knowledgeIds": []
+      },
+      "actualDelta": 80,
+      "expectedDelta": 80,
+      "latencyMs": 1116,
+      "usage": {
+        "input": 1250,
+        "output": 200
+      }
+    },
+    {
+      "label": "检索定义辅助计划",
+      "passed": true,
+      "mode": "model",
+      "plan": {
+        "title": "2026年2月与1月利润合计对比（按地区拆解）",
+        "date": "日期",
+        "metric": "利润",
+        "dimensions": [
+          "地区"
+        ],
+        "current": {
+          "start": "2026-02-01",
+          "end": "2026-02-28"
+        },
+        "previous": {
+          "start": "2026-01-01",
+          "end": "2026-01-31"
+        },
+        "knowledgeIds": [
+          "income-v1:1"
+        ]
+      },
+      "actualDelta": 399,
+      "expectedDelta": 399,
+      "latencyMs": 924,
+      "usage": {
+        "input": 1406,
+        "output": 201
+      }
+    },
+    {
+      "label": "利润率带原文回答",
+      "passed": true,
+      "mode": "model",
+      "status": "answered",
+      "answer": "总体利润率的计算方式是：利润合计 ÷ 销售额合计，即采用总体比率，而不是把每行的利润率求平均。需要注意，“利润”字段是每笔订单的利润金额，可按地区分组求和用于比较，它不是利润率。",
+      "citations": [
+        {
+          "id": "income-v1:1",
+          "quote": "利润率采用利润合计除以销售额合计的总体比率，不采用逐行利润率的平均值。",
+          "quoteIndex": 2
+        },
+        {
+          "id": "income-v1:1",
+          "quote": "利润字段记录每笔订单的利润金额，可以按地区分组求和比较，不是利润率字段。",
+          "quoteIndex": 1
+        }
+      ],
+      "sourceIds": [
+        "income-v1:1"
+      ],
+      "latencyMs": 1078,
+      "usage": {
+        "input": 730,
+        "output": 148
+      }
+    },
+    {
+      "label": "订单去重带原文回答",
+      "passed": true,
+      "mode": "model",
+      "status": "answered",
+      "answer": "按该规则，同一订单的多行金额需要相加，计入销售额合计；而订单标识只计一次，即分母用订单编号去重后的数量。因此客单价 = 有效订单的销售额合计 ÷ 订单编号去重数量，多行不会被重复计入订单数。",
+      "citations": [
+        {
+          "id": "order-v1:1",
+          "quote": "客单价等于有效订单的销售额合计除以订单编号去重数量。",
+          "quoteIndex": 0
+        },
+        {
+          "id": "order-v1:1",
+          "quote": "同一订单的多行金额相加，订单标识只计一次。",
+          "quoteIndex": 1
+        }
+      ],
+      "sourceIds": [
+        "order-v1:1"
+      ],
+      "latencyMs": 961,
+      "usage": {
+        "input": 681,
+        "output": 158
+      }
+    },
+    {
+      "label": "退款定义检索回答",
+      "passed": true,
+      "mode": "model",
+      "status": "answered",
+      "answer": "应该扣除。按收入统计规则，净收入必须扣除已成功退款的金额。",
+      "citations": [
+        {
+          "id": "income-v1:1",
+          "quote": "本评测中的净收入必须扣除已成功退款的金额。",
+          "quoteIndex": 0
+        }
+      ],
+      "sourceIds": [
+        "income-v1:1"
+      ],
+      "latencyMs": 821,
+      "usage": {
+        "input": 733,
+        "output": 100
+      }
+    },
+    {
+      "label": "冲突定义必须提示",
+      "passed": true,
+      "mode": "model",
+      "status": "conflict",
+      "answer": "两份规则对“净收入是否扣除退款”的规定相互矛盾，且是两个不同版本，无法确定应以哪一版为准：\n\n- 版本2（新规则）规定：净收入不扣除任何退款金额，已成功退款的订单也完全计入净收入，并明确说明“此规定与旧版本不同”。\n- 版本1（旧规则）规定：净收入必须扣除已成功退款的金额。\n\n因此存在版本冲突，需要由业务方确认适用版本后才能给出唯一结论。",
+      "citations": [
+        {
+          "id": "income-v2:1",
+          "quote": "本评测的新规则规定净收入不扣除任何退款金额，已成功退款的订单也完全计入净收入。",
+          "quoteIndex": 0
+        },
+        {
+          "id": "income-v2:1",
+          "quote": "此规定与旧版本不同。",
+          "quoteIndex": 1
+        },
+        {
+          "id": "income-v1:1",
+          "quote": "本评测中的净收入必须扣除已成功退款的金额。",
+          "quoteIndex": 0
+        }
+      ],
+      "sourceIds": [
+        "income-v2:1",
+        "income-v1:1"
+      ],
+      "latencyMs": 1451,
+      "usage": {
+        "input": 866,
+        "output": 221
+      }
+    },
+    {
+      "label": "无业务依据不得补造",
+      "passed": true,
+      "mode": "model",
+      "status": "insufficient",
+      "answer": "无法确定。现有资料明确说明其只定义订单去重与利润率，不包含税种、纳税申报周期或税务规定，因此无法回答本公司的纳税申报周期。",
+      "citations": [
+        {
+          "id": "unrelated:1",
+          "quote": "本手册仅定义订单去重与利润率，不包含税种、纳税申报周期或税务规定。",
+          "quoteIndex": 0
+        }
+      ],
+      "sourceIds": [
+        "unrelated:1"
+      ],
+      "latencyMs": 659,
+      "usage": {
+        "input": 650,
+        "output": 119
+      }
+    },
+    {
+      "label": "无命中不发起生成（本机检索检查）",
+      "passed": true,
+      "mode": "local",
+      "providerCalls": 0
+    }
+  ]
+}

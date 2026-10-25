@@ -4,6 +4,7 @@ import "./exploration.css";
 import "./delivery.css";
 import "./copilot.css";
 import "./diagnostics.css";
+import "./intelligence.css";
 
 export const metadata: Metadata = {
   title: "数问 DataPilot · 让数据回答问题",

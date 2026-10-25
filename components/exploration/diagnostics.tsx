@@ -26,6 +26,8 @@ import {
 } from "@/lib/diagnostics";
 import { backgroundTask } from "@/lib/background";
 import { EvidenceGuide } from "./evidence-guide";
+import { MetricLibrary } from "./metric-library";
+import { type DiagnosticState, type SavedMetric } from "@/lib/workbench";
 function Waterfall({
   result,
   onGroup,
@@ -109,42 +111,45 @@ export function Diagnostics({
   filters,
   onInspect,
   onExport,
+  state,
+  onChange,
+  savedMetrics,
+  onMetricsChange,
 }: {
   dataset: Dataset;
   profile: Profile;
   filters: FilterClause[];
   onInspect: (dataset: Dataset, title: string) => void;
   onExport: (name: string, text: string) => void;
+  state: DiagnosticState;
+  onChange: (state: DiagnosticState) => void;
+  savedMetrics: SavedMetric[];
+  onMetricsChange: (items: SavedMetric[]) => void;
 }) {
   const dates = profile.fields.filter((f) => f.type === "date"),
     metrics = profile.fields.filter((f) => f.type === "number"),
     dimensions = profile.fields.filter((f) => f.type === "text");
-  const [date, setDate] = useState(dates[0]?.name || ""),
-    [metric, setMetric] = useState(
-      metrics.find((f) => /销售额|收入|消费金额|sales/i.test(f.name))?.name ||
-        metrics[0]?.name ||
-        "",
-    ),
-    [dimension, setDimension] = useState(
-      dimensions.find((f) => f.unique < 100)?.name || dimensions[0]?.name || "",
-    );
-  const [periods, setPeriods] = useState(() =>
-    periodDefaults(dataset, dates[0]?.name || ""),
-  );
+  const {
+    date,
+    metric,
+    dimension,
+    numerator: top,
+    denominator: bottom,
+    kind: ratioKind,
+    percent,
+  } = state;
+  const periods = { current: state.current, previous: state.previous };
+  const patch = (value: Partial<DiagnosticState>) =>
+    onChange({ ...state, ...value });
+  const setMetric = (metric: string) => patch({ metric });
+  const setDimension = (dimension: string) => patch({ dimension });
+  const setPeriods = (value: typeof periods) => patch(value);
+  const setTop = (numerator: string) => patch({ numerator });
+  const setBottom = (denominator: string) => patch({ denominator });
+  const setPercent = (percent: boolean) => patch({ percent });
   const [result, setResult] = useState<PeriodComparison | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const [top, setTop] = useState(
-      metrics.find((f) => /利润/.test(f.name))?.name || metrics[0]?.name || "",
-    ),
-    [bottom, setBottom] = useState(
-      metrics.find((f) => /销售额|收入|消费金额/.test(f.name))?.name ||
-        metrics[1]?.name ||
-        metrics[0]?.name ||
-        "",
-    ),
-    [ratioKind, setRatioKind] = useState<"ratio" | "distinct">("ratio"),
-    [percent, setPercent] = useState(true);
   const input: ComparisonInput = {
     date,
     metric,
@@ -164,7 +169,9 @@ export function Diagnostics({
       { dataset, profile, input },
       controller.signal,
     )
-      .then(setResult)
+      .then((value) => {
+        if (!controller.signal.aborted) setResult(value);
+      })
       .catch((e) => {
         if (e.name !== "AbortError") setError(e.message);
       })
@@ -266,7 +273,22 @@ export function Diagnostics({
         JSON.stringify(filters) +
         "\n\n## 需核查\n" +
         result.warnings.join("\n") +
-        "\n\n分组差额解释变化构成，不能据此确定业务因果。",
+        "\n\n分组差额解释变化构成，不能据此确定业务因果。" +
+        "\n\n## 当前业务指标与已保存定义\n" +
+        JSON.stringify(
+          {
+            formula: {
+              numerator: top,
+              denominator: bottom,
+              kind: ratioKind,
+              percent,
+            },
+            result: ratio,
+            library: savedMetrics,
+          },
+          null,
+          2,
+        ),
     );
   }
   return (
@@ -292,8 +314,10 @@ export function Diagnostics({
                 <select
                   value={date}
                   onChange={(e) => {
-                    setDate(e.target.value);
-                    setPeriods(periodDefaults(dataset, e.target.value));
+                    patch({
+                      date: e.target.value,
+                      ...periodDefaults(dataset, e.target.value),
+                    });
                   }}
                 >
                   {dates.map((f) => (
@@ -351,6 +375,15 @@ export function Diagnostics({
                       }
                       type="date"
                       value={periods[key].start}
+                      onInput={(e) =>
+                        setPeriods({
+                          ...periods,
+                          [key]: {
+                            ...periods[key],
+                            start: e.currentTarget.value,
+                          },
+                        })
+                      }
                       onChange={(e) =>
                         setPeriods({
                           ...periods,
@@ -368,6 +401,15 @@ export function Diagnostics({
                       }
                       type="date"
                       value={periods[key].end}
+                      onInput={(e) =>
+                        setPeriods({
+                          ...periods,
+                          [key]: {
+                            ...periods[key],
+                            end: e.currentTarget.value,
+                          },
+                        })
+                      }
                       onChange={(e) =>
                         setPeriods({
                           ...periods,
@@ -504,9 +546,11 @@ export function Diagnostics({
             <select
               value={ratioKind}
               onChange={(e) => {
-                setRatioKind(e.target.value as "ratio" | "distinct");
-                setBottom("");
-                setPercent(e.target.value === "ratio");
+                patch({
+                  kind: e.target.value as "ratio" | "distinct",
+                  denominator: "",
+                  percent: e.target.value === "ratio",
+                });
               }}
             >
               <option value="ratio">分子合计 / 分母合计</option>
@@ -527,9 +571,7 @@ export function Diagnostics({
               <option value="">请选择字段</option>
               {(ratioKind === "ratio"
                 ? metrics
-                : profile.fields.filter((f) =>
-                    /订单|order|编号|标识/i.test(f.name),
-                  )
+                : profile.fields.filter((f) => f.type !== "date")
               ).map((f) => (
                 <option key={f.name}>{f.name}</option>
               ))}
@@ -572,6 +614,21 @@ export function Diagnostics({
           利润率应选择利润 / 销售额；订单客单价选择销售额 /
           订单标识去重数。使用成对完整记录，不将逐行比率的平均值当作总体比率。
         </p>
+        <MetricLibrary
+          dataset={scope}
+          profile={profile}
+          items={savedMetrics}
+          onChange={onMetricsChange}
+          current={state}
+          onLoad={(m) =>
+            patch({
+              numerator: m.numerator,
+              denominator: m.denominator,
+              kind: m.kind,
+              percent: m.percent,
+            })
+          }
+        />
       </section>
     </div>
   );

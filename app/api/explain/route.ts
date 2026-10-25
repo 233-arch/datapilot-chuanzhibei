@@ -1,5 +1,6 @@
 import { explanationRequest, explainFacts } from "@/lib/explainer";
 import { modelConfig } from "@/lib/model-config";
+import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   if (!modelConfig().key)
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "事实摘要格式不正确。" }, { status: 400 });
   }
+  const gate = acquireAssistant(request);
+  if (gate.response) return gate.response;
   try {
     return Response.json(
       await explainFacts(payload.facts, modelConfig(), fetch, request.signal),
@@ -31,5 +34,7 @@ export async function POST(request: Request) {
       },
       { status: 502 },
     );
+  } finally {
+    gate.release();
   }
 }
