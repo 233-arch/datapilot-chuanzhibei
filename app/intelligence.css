@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  font-size: 12px;
+  font-size: 14px;
   color: #526d5e;
   margin: 15px 0;
 }
@@ -56,7 +56,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 12px;
+  font-size: 14px;
   margin: 16px 0;
 }
 .workflow-dimensions > span {
@@ -79,14 +79,14 @@
 }
 .workflow-period > strong {
   grid-column: 1/-1;
-  font-size: 12px;
+  font-size: 14px;
   color: #43624f;
 }
 .workflow-period label {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 11px;
+  font-size: 14px;
   min-width: 0;
 }
 .workflow-period input {
@@ -121,14 +121,14 @@
   color: #247b60;
 }
 .workflow-steps li > span {
-  font-size: 13px;
+  font-size: 15px;
   min-width: 15px;
   text-align: center;
 }
 .workflow-steps strong,
 .workflow-steps small {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.7;
 }
 .workflow-steps li > div {
@@ -146,12 +146,12 @@
 .diagnostic-table-wrap > table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   border: 0;
 }
 .workflow-steps small {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 400;
 }
 .workflow-results {
@@ -164,7 +164,7 @@
   border-radius: 8px;
   padding: 13px;
   line-height: 1.8;
-  font-size: 12px;
+  font-size: 14px;
   color: #54705d;
 }
 .workflow-comparison {
@@ -177,14 +177,14 @@
 .workflow-comparison small,
 .workflow-evidence small {
   color: #7a8d7f;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.7;
 }
 .workflow-comparison details,
 .workflow-plan details,
 .retrieved-details {
   margin-top: 16px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
   color: #637c6b;
 }
@@ -207,7 +207,7 @@
   color: #126e52;
 }
 .workflow-evidence ul {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
   color: #57715f;
 }
@@ -217,7 +217,7 @@
   border-left: 3px solid #8cbaa4;
   background: #f1f7ed;
   color: #5f7765;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.9;
   white-space: pre-wrap;
 }
@@ -246,11 +246,11 @@
   overflow-wrap: anywhere;
 }
 .knowledge-documents strong {
-  font-size: 12px;
+  font-size: 14px;
   color: #365d44;
 }
 .knowledge-documents small {
-  font-size: 10px;
+  font-size: 13px;
   color: #87988b;
   line-height: 1.8;
 }
@@ -273,7 +273,7 @@
   padding: 20px;
   margin: 18px 0;
   line-height: 1.9;
-  font-size: 13px;
+  font-size: 15px;
   overflow-wrap: anywhere;
 }
 .knowledge-answer > p {
@@ -285,7 +285,7 @@
   padding: 10px 15px;
   margin: 16px 0;
   color: #607767;
-  font-size: 12px;
+  font-size: 14px;
 }
 .knowledge-answer blockquote p {
   white-space: pre-wrap;
@@ -293,7 +293,7 @@
 }
 .knowledge-answer > small {
   color: #859589;
-  font-size: 10px;
+  font-size: 13px;
 }
 .retrieved-snippet {
   display: flex;
@@ -311,10 +311,10 @@
 }
 .retrieved-snippet strong {
   color: #42674d;
-  font-size: 12px;
+  font-size: 14px;
 }
 .retrieved-snippet small {
-  font-size: 10px;
+  font-size: 13px;
   color: #8a9a89;
 }
 .knowledge-source {
@@ -330,12 +330,12 @@
   margin: 0;
 }
 .knowledge-source p {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 2;
   white-space: pre-wrap;
 }
 .knowledge-source small {
-  font-size: 11px;
+  font-size: 14px;
   color: #788d76;
 }
 .metric-library {
@@ -344,7 +344,7 @@
   margin-top: 24px;
 }
 .metric-library h3 small {
-  font-size: 11px;
+  font-size: 14px;
   color: #879b88;
 }
 .saved-metrics-grid {
@@ -369,7 +369,7 @@
 }
 .saved-metric h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   color: #45654c;
 }
 .saved-metric > strong {
@@ -379,20 +379,20 @@
   margin: 13px 0;
 }
 .saved-metric > p {
-  font-size: 11px;
+  font-size: 14px;
   color: #768c77;
   line-height: 1.8;
 }
 .saved-metric > small {
   display: block;
-  font-size: 10px;
+  font-size: 13px;
   color: #849783;
 }
 .saved-metric > button {
   margin-top: 13px;
 }
 .empty-note {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.8;
   color: #879784;
   padding: 14px 0;

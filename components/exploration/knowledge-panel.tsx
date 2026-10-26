@@ -271,18 +271,20 @@ export function KnowledgePanel({
           />
         </label>
         <div className="intelligence-actions">
-          <button
-            className="button"
-            disabled={busy || !hits.length || !question.trim() || !visitorModel}
-            onClick={ask}
-          >
-            {busy ? (
-              <LoaderCircle size={14} className="spin" />
-            ) : (
-              <Search size={14} />
-            )}
+          {visitorModel && (
+            <button
+              className="button"
+              disabled={busy || !hits.length || !question.trim()}
+              onClick={ask}
+            >
+              {busy ? (
+                <LoaderCircle size={14} className="spin" />
+              ) : (
+                <Search size={14} />
+          )}
             检索并生成有引用的回答
           </button>
+        )}
           {busy && (
             <button
               className="button subtle"

@@ -73,7 +73,7 @@ function Waterfall({
               x={40 + i * w + (w - 12) / 2}
               y={Math.min(y(b.from), y(b.to)) - 8}
               textAnchor="middle"
-              fontSize="10"
+              fontSize="13"
               fill="#456151"
             >
               {formatNumber(b.total ? b.to : b.to - b.from, true)}
@@ -82,7 +82,7 @@ function Waterfall({
               x={40 + i * w + (w - 12) / 2}
               y="245"
               textAnchor="middle"
-              fontSize="11"
+              fontSize="13"
               fill="#5d7467"
             >
               {b.name.length > 7 ? b.name.slice(0, 6) + "…" : b.name}

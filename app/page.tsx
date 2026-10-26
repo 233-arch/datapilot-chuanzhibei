@@ -110,7 +110,7 @@ import {
   rangeFilters,
 } from "@/lib/diagnostics";
 import { EvidenceGuide } from "@/components/exploration/evidence-guide";
-import { ApiAccessNotice, VisitorApiSettings } from "@/components/exploration/visitor-api";
+import { VisitorApiSettings } from "@/components/exploration/visitor-api";
 import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
 import { backgroundTask } from "@/lib/background";
 import { campusScenario } from "@/lib/scenarios";
@@ -339,7 +339,7 @@ function DataChart({
       contentStyle={{
         border: "1px solid #e5eae6",
         borderRadius: 10,
-        fontSize: 12,
+        fontSize: 13,
         boxShadow: "0 6px 24px #173e2912",
       }}
       formatter={(v) => [`${formatNumber(Number(v))}${result.unit}`, label]}
@@ -407,7 +407,7 @@ function DataChart({
               axisLine={false}
               tickLine={false}
               tickMargin={12}
-              tick={{ fontSize: 11, fill: "#929b94" }}
+              tick={{ fontSize: 13, fill: "#929b94" }}
               tickFormatter={(s) =>
                 /^\d{4}-\d{2}$/.test(s)
                   ? `${Number(s.slice(5))}月`
@@ -418,7 +418,7 @@ function DataChart({
               width={52}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: "#929b94" }}
+              tick={{ fontSize: 13, fill: "#929b94" }}
               tickFormatter={(n) =>
                 Math.abs(n) >= 10000
                   ? `${Math.round(n / 10000)}万`
@@ -458,7 +458,7 @@ function DataChart({
               axisLine={false}
               tickLine={false}
               tickMargin={10}
-              tick={{ fontSize: 11, fill: "#87928a" }}
+              tick={{ fontSize: 13, fill: "#87928a" }}
               interval={0}
               tickFormatter={(s) => String(s).slice(0, 7)}
             />
@@ -466,7 +466,7 @@ function DataChart({
               width={48}
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: "#929b94" }}
+              tick={{ fontSize: 13, fill: "#929b94" }}
               tickFormatter={(n) => formatNumber(n, true)}
             />
             {tooltip}
@@ -606,7 +606,6 @@ export default function Home() {
     id: string;
     profile: Profile;
   } | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
   const [view, setView] = useState<View>("workspace");
   const [tab, setTab] = useState<Tab>("overview");
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -692,6 +691,7 @@ export default function Home() {
     () => explorationTasks(dataset, profile, scopedPlan),
     [dataset, profile, scopedPlan],
   );
+  const qualityIssues = profile.fields.filter((f) => f.missing || f.invalid).length + (profile.duplicates > 0 ? 1 : 0);
   const dimensions = profile.fields.filter((f) => f.type !== "number");
   const metrics = profile.fields.filter((f) => f.type === "number");
   const secondaryPlan = useMemo(() => {
@@ -803,7 +803,6 @@ export default function Home() {
     ];
   }, [profile]);
   useEffect(() => {
-    setShowGuide(localStorage.getItem("datapilot-guide-dismissed") !== "yes");
     let alive = true;
     readWorkspace<{
       dataset: Dataset;
@@ -886,10 +885,24 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
-    const open = () => setDialog("settings");
+    const open = () => {
+      setMobileChat(false);
+      setDialog("settings");
+    };
     window.addEventListener("datapilot:configure-api", open);
     return () => window.removeEventListener("datapilot:configure-api", open);
   }, []);
+  useEffect(() => {
+    if (!assistant || !mobileChat || dialog) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAssistant(false);
+        setMobileChat(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [assistant, mobileChat, dialog]);
   useEffect(() => {
     requestGeneration.current++;
     abort.current?.abort();
@@ -1107,8 +1120,8 @@ export default function Home() {
     if (needed) {
       setClarification(needed);
       setAssistant(true);
+      setMobileChat(true);
       setAssistantTab("chat");
-      if (window.innerWidth <= 900) setMobileChat(true);
       return;
     }
     setClarification(null);
@@ -1119,6 +1132,7 @@ export default function Home() {
     ) {
       setView("workspace");
       setTab("intelligence");
+      setMobileChat(false);
       setTools((previous) => ({
         ...previous,
         workflow: { question: q, plan: null },
@@ -1135,6 +1149,7 @@ export default function Home() {
     setAssistantTab("chat");
     setSteps([]);
     setAssistant(true);
+    setMobileChat(true);
     setView("workspace");
     setTab("overview");
     abort.current = new AbortController();
@@ -1261,6 +1276,15 @@ export default function Home() {
     setClarification(null);
     setPage(1);
   }
+  function updateChartControls(patch: Partial<Plan>) {
+    setActivePlan((previous) => {
+      const next = { ...previous, ...patch };
+      const labels = { count: "记录数", sum: "合计", mean: "均值", max: "最大值", min: "最小值" };
+      const metric = next.aggregate === "count" ? "记录数" : `${next.metric}${labels[next.aggregate]}`;
+      const view = next.chart === "pie" ? "构成" : next.chart === "bar" ? "对比" : "趋势";
+      return { ...next, title: `${next.groupBy} · ${metric}${view}` };
+    });
+  }
   function openAnalysis(plan: Plan) {
     validatePlan(plan, profile);
     changeScope(filtersForPlan(plan));
@@ -1306,8 +1330,8 @@ export default function Home() {
         basis: proposalBasis,
       });
       setAssistant(true);
+      setMobileChat(true);
       setAssistantTab("chat");
-      if (window.innerWidth <= 900) setMobileChat(true);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "无法预览此项建议");
     }
@@ -1419,11 +1443,10 @@ export default function Home() {
             <strong>疯狂星期四</strong>
             <small>个人工作空间</small>
           </div>
-          <ChevronDown size={14} />
         </div>
         <div className="nav-caption">工作空间</div>
         <nav aria-label="主导航">
-          <button
+          <button aria-label="分析工作台" title="分析工作台"
             className={
               view === "workspace" && tab !== "lab"
                 ? "nav-item active"
@@ -1435,16 +1458,16 @@ export default function Home() {
             }}
           >
             <LayoutDashboard size={18} />
-            分析工作台<span className="nav-shortcut">⌘ 1</span>
+            分析工作台
           </button>
-          <button
+          <button aria-label="我的数据集" title="我的数据集"
             className={view === "datasets" ? "nav-item active" : "nav-item"}
             onClick={() => setView("datasets")}
           >
             <Database size={18} />
-            我的数据集<span className="nav-count">1</span>
+            我的数据集
           </button>
-          <button
+          <button aria-label="创新实验室" title="创新实验室"
             className={
               view === "workspace" && tab === "lab"
                 ? "nav-item active"
@@ -1457,11 +1480,8 @@ export default function Home() {
           >
             <FlaskConical size={18} />
             创新实验室
-            {pins.length > 0 && (
-              <span className="nav-count">{pins.length}</span>
-            )}
           </button>
-          <button
+          <button aria-label="洞察报告" title="洞察报告"
             className={view === "reports" ? "nav-item active" : "nav-item"}
             onClick={() => setView("reports")}
           >
@@ -1527,20 +1547,6 @@ export default function Home() {
           </>
         )}
         <div className="sidebar-bottom">
-          <div className="tip-card">
-            <span className="tip-icon">
-              <Sparkles size={17} />
-            </span>
-            <strong>从好问题，开始好分析</strong>
-            <p>
-              不用写代码，试着告诉数问
-              <br />
-              你想从数据中发现什么。
-            </p>
-            <button onClick={() => setDialog("help")}>
-              查看使用指南 <ArrowUpRight size={13} />
-            </button>
-          </div>
           <button className="nav-item" onClick={() => setDialog("settings")}>
             <Settings2 size={17} />
             工作空间设置
@@ -1551,17 +1557,9 @@ export default function Home() {
           </button>
           <button className="nav-item" onClick={() => setDialog("help")}>
             <CircleHelp size={17} />
-            帮助与反馈
+            使用帮助
             <ArrowUpRight size={13} className="push-right" />
           </button>
-          <div className="user-bar">
-            <span className="user-avatar">数</span>
-            <div>
-              <strong>数据探索者</strong>
-              <small>保持好奇，发现更多</small>
-            </div>
-            <span className="user-online" />
-          </div>
         </div>
       </aside>
       <section className="main-shell">
@@ -1571,7 +1569,7 @@ export default function Home() {
             <ChevronRight size={13} />
             <strong>
               {view === "workspace"
-                ? "分析工作台"
+                ? (tab === "lab" ? "创新实验室" : "分析工作台")
                 : view === "datasets"
                   ? "我的数据集"
                   : "洞察报告"}
@@ -1591,11 +1589,11 @@ export default function Home() {
               <CircleHelp size={18} />
             </button>
             <button
-              className="avatar-mini"
+              className="settings-top-button"
               onClick={() => setDialog("settings")}
-              aria-label="工作空间设置"
+              aria-label="设置与 API"
             >
-              数
+              <Settings2 size={17} /> 设置与 API
             </button>
           </div>
         </header>
@@ -1603,19 +1601,16 @@ export default function Home() {
           <main className="workspace-content">
             <div className="page-heading">
               <div>
-                <div className="eyebrow">
-                  <span /> DATA, MEET CLARITY
-                </div>
                 <h1>
                   {view === "workspace"
-                    ? "把数据，变成答案。"
+                    ? (tab === "lab" ? "创新实验室" : "数据分析工作台")
                     : view === "datasets"
-                      ? "每一次洞察，从数据开始。"
-                      : "让每一次发现，都有据可查。"}
+                      ? "我的数据集"
+                      : "洞察报告"}
                 </h1>
                 <p>
                   {view === "workspace"
-                    ? "连接你的数据，用自然语言发现值得行动的洞察。"
+                    ? "导入表格、核对指标，用图表和分析助手探索数据。"
                     : view === "datasets"
                       ? "数据保存在当前浏览器，随时探索、清洗和导出。"
                       : "回顾分析过程，带着可信的结果继续前进。"}
@@ -1632,7 +1627,7 @@ export default function Home() {
                 导入数据
               </button>
             </div>
-            <div className="dataset-banner">
+            <button className="dataset-banner" aria-label="查看当前数据集" onClick={() => { setView("workspace"); setTab("preview"); }}>
               <div className="dataset-file-icon">
                 <FileSpreadsheet size={21} />
               </div>
@@ -1646,21 +1641,8 @@ export default function Home() {
                   {profile.columnCount} 列
                 </span>
               </div>
-              <span className="badge green">
-                <Check size={12} />
-                可分析
-              </span>
-              <button
-                className="icon-button"
-                aria-label="查看数据集"
-                onClick={() => {
-                  setView("workspace");
-                  setTab("preview");
-                }}
-              >
-                <ChevronRight size={17} />
-              </button>
-            </div>
+              <span className="dataset-open-label"><span>查看数据</span><ChevronRight size={18} /></span>
+            </button>
             {view === "workspace" && (
               <>
                 <FilterBar
@@ -1670,43 +1652,6 @@ export default function Home() {
                   count={scopeDataset.rows.length}
                   onChange={changeScope}
                 />
-                {showGuide && (
-                  <div className="onboarding-strip">
-                    <strong>第一次探索？</strong>
-                    <button
-                      onClick={() => {
-                        setAssistant(true);
-                        setAssistantTab("chat");
-                        if (window.innerWidth <= 900) setMobileChat(true);
-                      }}
-                    >
-                      ① 提出一个问题
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTab("overview");
-                        setToast(
-                          "点击图表中的分组查看来源；分析证据卡可生成AI导读。",
-                        );
-                      }}
-                    >
-                      ② 核对分析证据
-                    </button>
-                    <button onClick={exportReport}>③ 导出分析报告</button>
-                    <button
-                      className="dismiss-guide"
-                      onClick={() => {
-                        localStorage.setItem(
-                          "datapilot-guide-dismissed",
-                          "yes",
-                        );
-                        setShowGuide(false);
-                      }}
-                    >
-                      知道了
-                    </button>
-                  </div>
-                )}
                 <AnalysisJourney
                   state={
                     journey.datasetId === dataset.id
@@ -1750,10 +1695,7 @@ export default function Home() {
                     >
                       <ShieldCheck size={15} />
                       质量检查
-                      <span className="tiny-count">
-                        {profile.fields.filter((f) => f.missing || f.invalid)
-                          .length + (profile.duplicates > 0 ? 1 : 0)}
-                      </span>
+                      {qualityIssues > 0 && <span className="tiny-count">{qualityIssues}</span>}
                     </button>
                     <button
                       role="tab"
@@ -1783,13 +1725,6 @@ export default function Home() {
                       创新实验室
                     </button>
                   </div>
-                  <button
-                    className="text-button export-top"
-                    onClick={exportReport}
-                  >
-                    <ArrowDownToLine size={14} />
-                    导出报告
-                  </button>
                 </div>
                 {tab === "overview" && (
                   <>
@@ -1927,6 +1862,7 @@ export default function Home() {
                         className="text-button"
                         onClick={() => {
                           setAssistant(true);
+                          setMobileChat(true);
                           input.current?.focus();
                         }}
                       >
@@ -1978,7 +1914,7 @@ export default function Home() {
                                       : "饼图"
                                 }
                                 onClick={() =>
-                                  setActivePlan((p) => ({ ...p, chart: c }))
+                                  updateChartControls({ chart: c })
                                 }
                               >
                                 {c === "line" ? (
@@ -1988,6 +1924,7 @@ export default function Home() {
                                 ) : (
                                   <span className="pie-icon" />
                                 )}
+                                <span>{c === "line" ? "折线" : c === "bar" ? "柱状" : "饼图"}</span>
                               </button>
                             ))}
                           </div>
@@ -2006,8 +1943,7 @@ export default function Home() {
                           <select
                             value={activePlan.groupBy}
                             onChange={(e) =>
-                              setActivePlan((p) => ({
-                                ...p,
+                              updateChartControls({
                                 groupBy: e.target.value,
                                 sort:
                                   profile.fields.find(
@@ -2015,7 +1951,7 @@ export default function Home() {
                                   )?.type === "date"
                                     ? "natural"
                                     : "desc",
-                              }))
+                              })
                             }
                           >
                             {profile.fields.map((f) => (
@@ -2025,16 +1961,13 @@ export default function Home() {
                             ))}
                           </select>
                         </label>
+                        {activePlan.aggregate !== "count" && (
                         <label>
                           指标
                           <select
                             value={activePlan.metric}
-                            disabled={activePlan.aggregate === "count"}
                             onChange={(e) =>
-                              setActivePlan((p) => ({
-                                ...p,
-                                metric: e.target.value,
-                              }))
+                              updateChartControls({ metric: e.target.value })
                             }
                           >
                             {metrics.length ? (
@@ -2048,15 +1981,14 @@ export default function Home() {
                             )}
                           </select>
                         </label>
+                        )}
                         <label className="aggregate-control">
+                          统计方式
                           <select
                             aria-label="聚合方式"
                             value={activePlan.aggregate}
                             onChange={(e) =>
-                              setActivePlan((p) => ({
-                                ...p,
-                                aggregate: e.target.value as Plan["aggregate"],
-                              }))
+                              updateChartControls({ aggregate: e.target.value as Plan["aggregate"] })
                             }
                           >
                             <option value="count">计数</option>
@@ -2088,6 +2020,7 @@ export default function Home() {
                           单位：{result.unit || "数值"}
                         </span>
                       </div>
+                      <details className="chart-advanced"><summary>排序与时间设置</summary>
                       <div className="explore-chart-options">
                         <label>
                           排序
@@ -2136,12 +2069,7 @@ export default function Home() {
                               aria-label="时间粒度"
                               value={activePlan.timeGrain}
                               onChange={(e) =>
-                                setActivePlan((p) => ({
-                                  ...p,
-                                  timeGrain: e.target
-                                    .value as Plan["timeGrain"],
-                                  title: `${p.metric || "记录数"}${e.target.value === "day" ? "每日" : "月度"}趋势`,
-                                }))
+                                updateChartControls({ timeGrain: e.target.value as Plan["timeGrain"] })
                               }
                             >
                               <option value="month">按月</option>
@@ -2154,6 +2082,7 @@ export default function Home() {
                           点击柱形或分组追溯明细
                         </span>
                       </div>
+                      </details>
                       <DataChart
                         plan={activePlan}
                         result={result}
@@ -2819,9 +2748,9 @@ export default function Home() {
               </span>
             </footer>
           </main>
+          {assistant && mobileChat && <button className="assistant-backdrop" aria-label="关闭分析助手遮罩" onClick={() => { setAssistant(false); setMobileChat(false); }} />}
           {assistant && (
             <aside className="assistant-panel" aria-label="分析助手">
-              <ApiAccessNotice />
               <div className="assistant-header">
                 <span className="assistant-symbol">
                   <Sparkles size={18} />
@@ -2834,6 +2763,7 @@ export default function Home() {
                       ? "个人 API · 配置仅本页生效"
                       : "本地演示 · AI 需自备 API"}
                   </small>
+                  {!visitorModel && <button className="assistant-api-link" onClick={() => { setMobileChat(false); setDialog("settings"); }}>接入我的 API</button>}
                 </div>
                 <button
                   className="icon-button"
@@ -2890,14 +2820,8 @@ export default function Home() {
                       <div className="intro-orbit">
                         <Brand />
                       </div>
-                      <h2>你好，数据探索者。</h2>
-                      <p>
-                        我是你的分析搭档。
-                        <br />
-                        说说你想了解什么，
-                        <br />
-                        让我们一起找到数据中的答案。
-                      </p>
+                      <h2>从一个问题开始</h2>
+                      <p>选择下方问题，或输入你想核查的指标。</p>
                       <div className="intro-meta">
                         <span>{profile.columnCount} 个字段已就绪</span>
                         <span>可追溯的计算结果</span>
@@ -3444,6 +3368,7 @@ export default function Home() {
             onClick={() => {
               setDialog(null);
               setAssistant(true);
+              setMobileChat(true);
               input.current?.focus();
             }}
           >

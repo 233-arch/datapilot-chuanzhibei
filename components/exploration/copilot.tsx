@@ -36,7 +36,7 @@ export function PlanReview({ question, plan, result, mode, onApply, onDiscard }:
 export function AnalysisJourney({ state, playing, onRestore, onPlay, onPause }: {
   state: JourneyState; playing: boolean; onRestore: (index: number) => void; onPlay: () => void; onPause: () => void;
 }) {
-  if (!state.steps.length) return null;
+  if (state.steps.length < 2) return null;
   const current = state.steps[state.cursor];
   return <section className={`analysis-journey ${playing ? "is-playing" : ""}`} aria-label="分析路线回放">
     <div className="journey-heading"><span className="journey-icon"><Route size={17}/></span><div><strong>探索路线</strong><small aria-live="polite">{playing ? "正在回放" : "自动记录口径与筛选"} · {state.cursor+1}/{state.steps.length}</small></div>

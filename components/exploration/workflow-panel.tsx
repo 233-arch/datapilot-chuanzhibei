@@ -369,18 +369,20 @@ export function WorkflowPanel({
         />
       </label>
       <div className="intelligence-actions">
-        <button
-          className="button"
-          disabled={busy || !canPlan || !state.question.trim() || !visitorModel}
-          onClick={generate}
-        >
-          {busy && !plan ? (
-            <LoaderCircle size={14} className="spin" />
-          ) : (
-            <Sparkles size={14} />
-          )}
+        {visitorModel && (
+          <button
+            className="button"
+            disabled={busy || !canPlan || !state.question.trim()}
+            onClick={generate}
+          >
+            {busy && !plan ? (
+              <LoaderCircle size={14} className="spin" />
+            ) : (
+              <Sparkles size={14} />
+        )}
           生成分析计划
         </button>
+        )}
         {busy && (
           <button className="button subtle" onClick={stop}>
             <Square size={13} />

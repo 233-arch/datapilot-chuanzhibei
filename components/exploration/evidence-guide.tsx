@@ -72,16 +72,18 @@ export function EvidenceGuide({
         <div>
           <span className="eyebrow">EVIDENCE FIRST</span>
           <h3>{guide ? "AI 证据导读" : "已计算的分析证据"}</h3>
-          <p>点击解读会向模型发送下列统计摘要；原始记录保留在本机。</p>
+          <p>核对统计结果与来源明细；接入个人 API 后可解读证据。</p>
         </div>
-        <button
-          className="button subtle"
-          disabled={busy || !facts.length || !visitorModel}
-          onClick={generate}
-        >
-          <Sparkles size={14} />
-          {busy ? "正在整理证据…" : guide ? "重新解读" : "AI 解读证据"}
-        </button>
+        {visitorModel && (
+          <button
+            className="button subtle"
+            disabled={busy || !facts.length}
+            onClick={generate}
+          >
+            <Sparkles size={14} />
+            {busy ? "正在整理证据…" : guide ? "重新解读" : "AI 解读证据"}
+          </button>
+        )}
         {busy && (
           <button
             className="icon-button"

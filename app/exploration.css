@@ -16,7 +16,7 @@
   align-items: center;
   gap: 7px;
   color: #597a56;
-  font-size: 10px;
+  font-size: 13px;
   padding: 0;
 }
 .scope-toggle strong {
@@ -37,16 +37,16 @@
   display: grid;
   place-items: center;
   background: #e9f2e3;
-  font-size: 8px;
+  font-size: 13px;
   border-radius: 4px;
 }
 .scope-range {
   color: #91a083;
-  font-size: 9px;
+  font-size: 13px;
   margin-left: auto;
 }
 .scope-header > .text-button {
-  font-size: 9px;
+  font-size: 13px;
   padding: 0;
 }
 .scope-chips {
@@ -63,13 +63,13 @@
   background: #f3f8ed;
   border-radius: 5px;
   color: #72925d;
-  font-size: 9px;
+  font-size: 13px;
   padding: 6px 7px;
   max-width: 100%;
   text-align: left;
 }
 .scope-chips small {
-  font-size: 8px;
+  font-size: 13px;
   color: #9aae87;
 }
 .scope-chips strong {
@@ -95,12 +95,12 @@
   gap: 6px;
   flex: 1;
   min-width: 0;
-  font-size: 9px;
+  font-size: 13px;
   color: #829775;
 }
 .scope-inputs select,
 .scope-inputs input {
-  font-size: 10px;
+  font-size: 13px;
   border: 1px solid #dfe8d7;
   border-radius: 5px;
   background: white;
@@ -115,17 +115,17 @@
 }
 .scope-inputs .button {
   height: 33px;
-  font-size: 10px;
+  font-size: 13px;
   padding: 8px 11px;
 }
 .scope-caption {
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.8;
   color: #96a788;
   margin-top: 11px;
 }
 .scope-error {
-  font-size: 9px;
+  font-size: 13px;
   color: #aa7d3e;
   margin-top: 7px;
 }
@@ -136,14 +136,14 @@
   padding: 2px 18px 9px;
 }
 .explore-chart-options label {
-  font-size: 8px;
+  font-size: 13px;
   color: #94a388;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 .explore-chart-options select {
-  font-size: 8px;
+  font-size: 13px;
   background: #f9fbf5;
   border: 1px solid #e4ecdc;
   border-radius: 4px;
@@ -152,7 +152,7 @@
   max-width: 100px;
 }
 .explore-chart-options > span {
-  font-size: 8px;
+  font-size: 13px;
   color: #a1b194;
   margin-left: auto;
   display: flex;
@@ -171,7 +171,7 @@
   padding-top: 10px;
   border-top: 1px dashed #e4ebdb;
   color: #a3b18f;
-  font-size: 8px;
+  font-size: 13px;
 }
 .drill-strip > span {
   margin-right: 4px;
@@ -184,7 +184,7 @@
   padding: 4px 6px;
   border-radius: 4px;
   background: #fbfdf8;
-  font-size: 8px;
+  font-size: 13px;
   color: #8ba074;
   max-width: 100px;
   overflow: hidden;
@@ -216,7 +216,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 13px;
   color: #8b9e78;
 }
 .evidence-summary strong {
@@ -225,7 +225,7 @@
   color: #5f8550;
 }
 .evidence-caption {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.9;
   color: #93a783;
   margin: 12px 1px;
@@ -241,7 +241,7 @@
   gap: 8px;
 }
 .evidence-toolbar .button {
-  font-size: 10px;
+  font-size: 13px;
   padding: 8px 10px;
 }
 .evidence-view .table-overflow {
@@ -256,7 +256,7 @@
   z-index: 1;
 }
 .evidence-view .data-table td {
-  font-size: 10px;
+  font-size: 13px;
 }
 .evidence-view .pagination {
   padding: 14px 0 0;
@@ -284,7 +284,7 @@
   border-radius: 13px;
 }
 .lab-intro .eyebrow {
-  font-size: 7px;
+  font-size: 13px;
   margin-bottom: 7px;
   color: #99ae81;
 }
@@ -295,14 +295,14 @@
   font-weight: 500;
 }
 .lab-intro p {
-  font-size: 10px;
+  font-size: 13px;
   color: #98ab86;
   line-height: 1.8;
   margin-top: 7px;
 }
 .lab-intro > .badge {
   margin-left: auto;
-  font-size: 8px;
+  font-size: 13px;
   background: #fff9;
   border-color: #dce9cd;
   color: #87a46c;
@@ -324,7 +324,7 @@
   flex: 1;
   color: #93a77c;
   padding: 10px;
-  font-size: 11px;
+  font-size: 14px;
   border-radius: 5px;
   white-space: nowrap;
 }
@@ -357,7 +357,7 @@
   letter-spacing: -0.3px;
 }
 .lab-card-heading p {
-  font-size: 10px;
+  font-size: 13px;
   color: #99aa88;
   margin-top: 8px;
   line-height: 1.9;
@@ -368,7 +368,7 @@
   border-radius: 5px;
   background: #f6faef;
   color: #90a877;
-  font-size: 8px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .method-tag.amber {
@@ -389,7 +389,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 10px;
+  font-size: 13px;
   color: #8b9f77;
 }
 .lab-controls select,
@@ -401,7 +401,7 @@
   border: 1px solid #dfe9d5;
   border-radius: 5px;
   color: #678652;
-  font-size: 11px;
+  font-size: 14px;
   max-width: 100%;
 }
 .range-control {
@@ -412,7 +412,7 @@
   position: absolute;
   right: 0;
   top: -2px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: #7b9a63;
 }
@@ -427,7 +427,7 @@
   justify-content: space-between;
 }
 .range-control small {
-  font-size: 8px;
+  font-size: 13px;
   color: #acb99a;
 }
 .lab-stats {
@@ -447,7 +447,7 @@
   min-width: 0;
 }
 .lab-stats > div > span {
-  font-size: 9px;
+  font-size: 13px;
   color: #9bad8a;
 }
 .lab-stats strong {
@@ -465,7 +465,7 @@
   color: #338465;
 }
 .lab-stats strong > small {
-  font-size: 10px;
+  font-size: 13px;
   color: #a9ba96;
   letter-spacing: 0;
 }
@@ -487,11 +487,11 @@
   min-width: 65px;
 }
 .fence-diagram > div > span {
-  font-size: 9px;
+  font-size: 13px;
   color: #a6b593;
 }
 .fence-diagram strong {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: #8b9e74;
 }
@@ -507,7 +507,7 @@
   position: relative;
 }
 .fence-band > span {
-  font-size: 9px !important;
+  font-size: 13px !important;
   color: #86a06c !important;
   z-index: 1;
   background: #eff5e4;
@@ -534,7 +534,7 @@
   padding: 11px 12px;
   margin: 16px 0;
   color: #96aa7d;
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.9;
 }
 .lab-explanation svg {
@@ -550,12 +550,12 @@
 }
 .lab-table-title h4 {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   color: #77955f;
   font-weight: 500;
 }
 .lab-table-title span {
-  font-size: 8px;
+  font-size: 13px;
   color: #a6b696;
 }
 .lab-card > .table-overflow {
@@ -563,7 +563,7 @@
   border-radius: 6px;
 }
 .outlier-tag {
-  font-size: 8px;
+  font-size: 13px;
   border-radius: 4px;
   padding: 4px 6px;
   background: #fcf6e8;
@@ -581,12 +581,12 @@
   color: #a2b88b;
 }
 .lab-empty strong {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: #819e68;
 }
 .lab-empty p {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.8;
   color: #a6b696;
 }
@@ -599,14 +599,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 10px;
+  font-size: 13px;
   color: #8aa078;
   min-width: 0;
 }
 .scenario-control-grid select {
   width: 100%;
   min-width: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 .scenario-slider {
   padding: 20px 18px 15px;
@@ -622,7 +622,7 @@
   margin-bottom: 16px;
 }
 .scenario-slider label {
-  font-size: 11px;
+  font-size: 14px;
   color: #8aa473;
 }
 .scenario-slider strong {
@@ -636,12 +636,12 @@
 }
 .scenario-slider .text-button {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 13px;
 }
 .slider-ends {
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 13px;
   color: #aebc9e;
   margin-top: 5px;
 }
@@ -651,7 +651,7 @@
   margin-top: 15px;
 }
 .scenario-presets button {
-  font-size: 9px;
+  font-size: 13px;
   padding: 5px 10px;
   border: 1px solid #e2ecd7;
   background: #fff;
@@ -685,13 +685,13 @@
   color: #6d8a56;
 }
 .notebook-toolbar p {
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.8;
   color: #9eae8d;
   margin-top: 8px;
 }
 .notebook-toolbar .button {
-  font-size: 10px;
+  font-size: 13px;
   padding: 9px 12px;
 }
 .notebook-search {
@@ -710,12 +710,12 @@
   outline: 0;
   background: none;
   flex: 1;
-  font-size: 10px;
+  font-size: 13px;
   color: #819c69;
   min-width: 0;
 }
 .notebook-search .text-button {
-  font-size: 9px;
+  font-size: 13px;
   margin-left: auto;
   white-space: nowrap;
 }
@@ -743,7 +743,7 @@
   width: 100%;
   border: 1px solid transparent;
   background: none;
-  font-size: 12px;
+  font-size: 14px;
   color: #6f8e57;
   padding: 5px 3px;
   border-radius: 4px;
@@ -753,13 +753,13 @@
   background: #fbfdf7;
 }
 .pin-meta {
-  font-size: 8px;
+  font-size: 13px;
   color: #a3b48d;
   line-height: 1.9;
   margin-top: 7px;
 }
 .pin-summary {
-  font-size: 10px;
+  font-size: 13px;
   color: #8b9f76;
   line-height: 1.9;
   margin-top: 11px;
@@ -772,7 +772,7 @@
   border-radius: 5px;
   min-height: 65px;
   padding: 9px;
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.8;
   color: #859d6e;
   margin-top: 14px;
@@ -790,11 +790,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 8px;
+  font-size: 13px;
   color: #aab99a;
 }
 .pin-footer > .text-button {
-  font-size: 9px;
+  font-size: 13px;
   white-space: nowrap;
   margin-left: auto;
 }
@@ -806,7 +806,7 @@
   border: 1px solid #e6ecd9;
   border-radius: 5px;
   background: #f6faee;
-  font-size: 10px;
+  font-size: 13px;
   color: #98aa7e;
   line-height: 1.8;
   margin: 15px 0;
@@ -815,7 +815,7 @@
   color: #759754;
   text-decoration: underline;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 13px;
 }
 .compare-section {
   margin-top: 21px;
@@ -833,16 +833,16 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
-  font-size: 9px;
+  font-size: 13px;
   color: #91a77d;
 }
 .compare-selectors select {
   width: 100%;
   min-width: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 .compare-caption {
-  font-size: 8px;
+  font-size: 13px;
   color: #a8b895;
   line-height: 1.9;
   margin-top: 12px;
@@ -854,7 +854,7 @@
   margin-top: 10px;
 }
 .followup-actions button {
-  font-size: 8px;
+  font-size: 13px;
   border: 1px solid #e5edda;
   border-radius: 4px;
   color: #9bb082;
@@ -875,7 +875,7 @@
     font-size: 14px;
   }
   .lab-intro p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .lab-intro > .badge {
     display: none;
@@ -894,10 +894,10 @@
     font-size: 18px;
   }
   .lab-card-heading h3 {
-    font-size: 13px;
+    font-size: 15px;
   }
   .lab-card-heading p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .lab-controls {
     gap: 15px;
@@ -907,7 +907,7 @@
     min-width: 110px;
   }
   .notebook-toolbar h3 {
-    font-size: 12px;
+    font-size: 14px;
   }
   .pin-grid {
     grid-template-columns: 1fr;
@@ -928,7 +928,7 @@
     flex-wrap: wrap;
   }
   .explore-chart-options > span {
-    font-size: 7px;
+    font-size: 13px;
   }
   .scenario-stats strong {
     font-size: 19px;
@@ -941,7 +941,7 @@
     min-width: 55px;
   }
   .fence-diagram strong {
-    font-size: 10px;
+    font-size: 13px;
   }
 }
 @media (max-width: 1050px) {
@@ -949,7 +949,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .lab-navigation button {
-    font-size: 9px;
+    font-size: 13px;
     padding: 9px 5px;
     gap: 5px;
   }
@@ -981,7 +981,7 @@
     padding: 12px 5px;
   }
   .fence-band > span {
-    font-size: 8px !important;
+    font-size: 13px !important;
   }
   .fence-diagram {
     gap: 6px;
@@ -995,16 +995,16 @@
     flex-direction: column;
   }
   .method-tag {
-    font-size: 7px;
+    font-size: 13px;
   }
   .scope-caption {
-    font-size: 8px;
+    font-size: 13px;
   }
   .workspace-tabs > [role="tablist"] {
     gap: 15px;
   }
   .workspace-tabs [role="tab"] {
-    font-size: 9px;
+    font-size: 13px;
   }
   .scope-header {
     gap: 8px;
@@ -1044,7 +1044,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .lab-navigation button {
-    font-size: 11px;
+    font-size: 14px;
     padding: 11px;
   }
   .notebook-toolbar {
@@ -1058,7 +1058,7 @@
     padding: 12px 10px;
   }
   .fence-band > span {
-    font-size: 9px !important;
+    font-size: 13px !important;
   }
   .fence-diagram {
     gap: 16px;
@@ -1074,10 +1074,10 @@
     gap: 7px;
   }
   .scope-range {
-    font-size: 8px;
+    font-size: 13px;
   }
   .scope-toggle {
-    font-size: 9px;
+    font-size: 13px;
     gap: 4px;
   }
   .scope-inputs {
@@ -1091,28 +1091,28 @@
     flex-basis: 55%;
   }
   .scope-inputs .button {
-    font-size: 9px;
+    font-size: 13px;
     padding: 8px;
   }
   .scope-caption {
-    font-size: 8px;
+    font-size: 13px;
   }
   .scope-chips {
     padding-left: 10px;
     padding-right: 10px;
   }
   .scope-chips button {
-    font-size: 8px;
+    font-size: 13px;
     gap: 3px;
   }
   .scope-chips strong {
     max-width: 100px;
   }
   .scope-chips small {
-    font-size: 7px;
+    font-size: 13px;
   }
   .scope-header > .text-button {
-    font-size: 8px;
+    font-size: 13px;
   }
   .scope-header > .text-button svg {
     width: 10px;
@@ -1124,7 +1124,7 @@
     min-width: 0;
   }
   .workspace-tabs [role="tab"] {
-    font-size: 8px;
+    font-size: 13px;
     gap: 3px;
   }
   .workspace-tabs [role="tab"] svg {
@@ -1142,7 +1142,7 @@
     display: none;
   }
   .explore-chart-options label {
-    font-size: 8px;
+    font-size: 13px;
   }
   .drill-strip {
     margin-left: 12px;
@@ -1153,7 +1153,7 @@
     display: none;
   }
   .drill-strip button {
-    font-size: 7px;
+    font-size: 13px;
     padding: 4px 5px;
   }
   .lab-intro {
@@ -1169,15 +1169,15 @@
     width: 19px;
   }
   .lab-intro .eyebrow {
-    font-size: 6px;
+    font-size: 13px;
     letter-spacing: 1.3px;
   }
   .lab-intro h2 {
-    font-size: 12px;
+    font-size: 14px;
     letter-spacing: -0.2px;
   }
   .lab-intro p {
-    font-size: 8px;
+    font-size: 13px;
     line-height: 1.9;
   }
   .lab-navigation {
@@ -1185,7 +1185,7 @@
     padding: 4px;
   }
   .lab-navigation button {
-    font-size: 9px;
+    font-size: 13px;
     padding: 9px 3px;
     gap: 4px;
   }
@@ -1201,15 +1201,15 @@
     margin-bottom: 17px;
   }
   .lab-card-heading h3 {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.7;
   }
   .lab-card-heading p {
-    font-size: 9px;
+    font-size: 13px;
     margin-top: 6px;
   }
   .method-tag {
-    font-size: 6px;
+    font-size: 13px;
     padding: 4px;
     white-space: normal;
     max-width: 67px;
@@ -1236,7 +1236,7 @@
     font-size: 21px;
   }
   .lab-stats > div > span {
-    font-size: 8px;
+    font-size: 13px;
   }
   .fence-diagram {
     padding: 16px 9px;
@@ -1246,21 +1246,21 @@
     min-width: 45px;
   }
   .fence-diagram strong {
-    font-size: 9px;
+    font-size: 13px;
   }
   .fence-band {
     gap: 4px;
     padding: 13px 4px;
   }
   .fence-band > span {
-    font-size: 7px !important;
+    font-size: 13px !important;
     padding: 2px;
   }
   .fence-diagram > div > span {
-    font-size: 8px;
+    font-size: 13px;
   }
   .lab-explanation {
-    font-size: 8px;
+    font-size: 13px;
     padding: 10px 8px;
     gap: 6px;
   }
@@ -1269,26 +1269,26 @@
     gap: 6px;
   }
   .lab-table-title span {
-    font-size: 8px;
+    font-size: 13px;
     line-height: 1.7;
   }
   .lab-card .data-table td,
   .lab-card .data-table th {
-    font-size: 9px;
+    font-size: 13px;
     padding: 10px;
   }
   .lab-card .data-table .text-button {
-    font-size: 8px;
+    font-size: 13px;
   }
   .lab-empty {
     padding: 25px 8px 14px;
   }
   .lab-empty strong {
-    font-size: 11px;
+    font-size: 14px;
     line-height: 1.8;
   }
   .lab-empty p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .scenario-control-grid {
     grid-template-columns: 1fr 1fr;
@@ -1298,23 +1298,23 @@
     grid-column: 1/-1;
   }
   .scenario-control-grid select {
-    font-size: 9px;
+    font-size: 13px;
     padding: 8px 6px;
   }
   .scenario-control-grid label {
-    font-size: 9px;
+    font-size: 13px;
   }
   .scenario-slider {
     padding: 16px 12px;
   }
   .scenario-slider label {
-    font-size: 10px;
+    font-size: 13px;
   }
   .scenario-slider strong {
     font-size: 21px;
   }
   .scenario-slider .text-button {
-    font-size: 8px;
+    font-size: 13px;
   }
   .scenario-slider > div:first-child {
     gap: 7px;
@@ -1323,13 +1323,13 @@
     font-size: 21px;
   }
   .scenario-stats strong > small {
-    font-size: 9px;
+    font-size: 13px;
   }
   .scenario-chart {
     height: 220px;
   }
   .lab-card > .button {
-    font-size: 10px;
+    font-size: 13px;
   }
   .notebook-toolbar {
     flex-direction: column;
@@ -1337,11 +1337,11 @@
     gap: 12px;
   }
   .notebook-toolbar h3 {
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.8;
   }
   .notebook-toolbar p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .pin-grid {
     grid-template-columns: 1fr;
@@ -1350,20 +1350,20 @@
     padding: 13px;
   }
   .pin-card-top input {
-    font-size: 11px;
+    font-size: 14px;
   }
   .pin-summary {
-    font-size: 9px;
+    font-size: 13px;
   }
   .notebook-search {
     padding: 8px 9px;
     gap: 5px;
   }
   .notebook-search input {
-    font-size: 9px;
+    font-size: 13px;
   }
   .notebook-search .text-button {
-    font-size: 8px;
+    font-size: 13px;
     gap: 4px;
   }
   .compare-selectors {
@@ -1373,17 +1373,17 @@
     width: 13px;
   }
   .compare-selectors select {
-    font-size: 9px;
+    font-size: 13px;
     padding: 8px 5px;
   }
   .compare-section h3 {
-    font-size: 12px;
+    font-size: 14px;
   }
   .compare-section .lab-card-heading h3 > svg {
     width: 14px;
   }
   .compare-caption {
-    font-size: 8px;
+    font-size: 13px;
   }
   .evidence-modal {
     padding: 25px 16px;
@@ -1397,7 +1397,7 @@
     font-size: 18px;
   }
   .evidence-caption {
-    font-size: 9px;
+    font-size: 13px;
   }
   .evidence-toolbar {
     flex-direction: column;
@@ -1409,17 +1409,17 @@
     justify-content: space-between;
   }
   .evidence-toolbar .button {
-    font-size: 9px;
+    font-size: 13px;
     padding: 8px;
   }
   .evidence-view .data-table td {
-    font-size: 9px;
+    font-size: 13px;
   }
   .evidence-view .table-overflow {
     max-height: 35dvh;
   }
   .notebook-undo {
-    font-size: 9px;
+    font-size: 13px;
   }
 }
 @media (max-height: 760px) and (min-width: 821px) {

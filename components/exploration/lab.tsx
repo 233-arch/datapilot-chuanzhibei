@@ -526,13 +526,13 @@ function ScenarioStudio({
             />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 10, fill: "#829176" }}
+              tick={{ fontSize: 13, fill: "#829176" }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               tickFormatter={(v) => formatNumber(v, true)}
-              tick={{ fontSize: 9, fill: "#829176" }}
+              tick={{ fontSize: 13, fill: "#829176" }}
               axisLine={false}
               tickLine={false}
               width={52}
@@ -540,12 +540,12 @@ function ScenarioStudio({
             <Tooltip
               formatter={(v) => formatNumber(Number(v))}
               contentStyle={{
-                fontSize: 11,
+                fontSize: 13,
                 borderRadius: 7,
                 borderColor: "#e1eadb",
               }}
             />
-            <Legend wrapperStyle={{ fontSize: 10 }} />
+            <Legend wrapperStyle={{ fontSize: 13 }} />
             <Bar
               dataKey="baseline"
               name="基线"
