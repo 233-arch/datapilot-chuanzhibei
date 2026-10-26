@@ -1,6 +1,7 @@
 from pathlib import Path
 from html import escape
 import re
+import json
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib import colors
@@ -11,6 +12,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, 
 from pypdf import PdfReader
 
 ROOT = Path(__file__).resolve().parent.parent
+VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 OUT = ROOT / 'output' / 'pdf'
 OUT.mkdir(parents=True, exist_ok=True)
 pdfmetrics.registerFont(TTFont('CN', 'C:/Windows/Fonts/simsun.ttc', subfontIndex=0))
@@ -19,11 +21,11 @@ INK = colors.HexColor('#294438')
 GRAY = colors.HexColor('#718274')
 LINE = colors.HexColor('#e1e9de')
 styles = {
-    'body': ParagraphStyle('body',fontName='CN',fontSize=10,leading=17,textColor=INK,spaceAfter=9,wordWrap='CJK',allowWidows=0,allowOrphans=0),
+    'body': ParagraphStyle('body',fontName='CN',fontSize=10.5,leading=18,textColor=INK,spaceAfter=9,wordWrap='CJK',allowWidows=0,allowOrphans=0),
     'h2': ParagraphStyle('h2',fontName='CN',fontSize=15,leading=23,textColor=GREEN,spaceBefore=17,spaceAfter=10,keepWithNext=True,wordWrap='CJK'),
     'h3': ParagraphStyle('h3',fontName='CN',fontSize=11,leading=18,textColor=GREEN,spaceBefore=9,spaceAfter=6,keepWithNext=True,wordWrap='CJK'),
-    'cell': ParagraphStyle('cell',fontName='CN',fontSize=8.5,leading=14,textColor=INK,wordWrap='CJK'),
-    'small': ParagraphStyle('small',fontName='CN',fontSize=8.3,leading=14,textColor=GRAY,wordWrap='CJK',spaceAfter=8),
+    'cell': ParagraphStyle('cell',fontName='CN',fontSize=9.2,leading=15,textColor=INK,wordWrap='CJK'),
+    'small': ParagraphStyle('small',fontName='CN',fontSize=9,leading=15,textColor=GRAY,wordWrap='CJK',spaceAfter=8),
     'title': ParagraphStyle('title',fontName='CN',fontSize=32,leading=44,textColor=INK,spaceAfter=10),
     'subtitle': ParagraphStyle('subtitle',fontName='CN',fontSize=16,leading=25,textColor=GREEN,spaceAfter=16),
     'code': ParagraphStyle('code',fontName='CN',fontSize=8,leading=12,textColor=GRAY,borderPadding=10),
@@ -39,22 +41,22 @@ def chrome(canvas,doc):
     canvas.setStrokeColor(LINE);canvas.line(48,height-39,width-48,height-39)
     canvas.setFont('CN',8);canvas.setFillColor(GRAY)
     canvas.drawString(48,height-28,'数问 DataPilot / 参赛作品技术说明')
-    canvas.drawRightString(width-48,height-28,'v0.6.1  |  2026-10-26')
+    canvas.drawRightString(width-48,height-28,f'v{VERSION}  |  2026-10-26')
     canvas.line(48,41,width-48,41)
     canvas.drawString(48,27,'可核验的数据探索 · 演示模式与真实模型模式明确区分')
     canvas.drawRightString(width-48,27,str(doc.page))
     canvas.restoreState()
 
 target=OUT/'数问DataPilot_技术说明.pdf'
-doc=SimpleDocTemplate(str(target),pagesize=A4,rightMargin=48,leftMargin=48,topMargin=59,bottomMargin=57,title='数问 DataPilot 技术说明',author='DataPilot Project',allowSplitting=True)
+doc=SimpleDocTemplate(str(target),pagesize=A4,rightMargin=48,leftMargin=48,topMargin=59,bottomMargin=57,title='数问 DataPilot 技术说明',author='疯狂星期四',allowSplitting=True)
 story=[Spacer(1,21),p('数问 DataPilot','title'),p('让数据，回答问题。','subtitle'),p('AI WEB 网页开发挑战赛 · AI 数据分析与可视化方向','small'),Spacer(1,14)]
 story.append(p('从一份 Excel / CSV 到一次可核验的探索：自然语言生成分析计划，确定性引擎计算统计结果，图表与报告提供来源和口径。'))
-shot=ROOT/'docs/screenshots/v6-workflow-desktop.jpg'
+shot=ROOT/'docs/screenshots/v6-2-readable-desktop.png'
 if shot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(shot).size
-    story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：v0.6实际运行界面。20,000行合成性能样本，展示规划、计算与证据导读；不是实际业务效果。','small')])
-story.extend([Spacer(1,12),p('交付范围','h3'),p('疯狂星期四：上传、质量检查、联动、下钻、异常、情景推演、收藏、字典、连续追问、配置迁移和离线报告。新增多步骤分析、原文引用问答、指标库与诊断恢复；保留Excel导入、周期贡献与后台计算。原31题源码仍匹配，新功能9项真实调用加1项本机检查通过；学校队员与MP4仍待补齐。','small'),PageBreak()])
+    story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：v0.6.2工作台实测界面，使用20,000行合成样本；示例数字用于功能与版式验证。','small')])
+story.extend([Spacer(1,12),p('交付范围','h3'),p('疯狂星期四：上传、质量检查、联动、下钻、异常、情景推演、收藏、字典、连续追问、配置迁移和离线报告。新增多步骤分析、原文引用问答、指标库与诊断恢复；保留Excel导入、周期贡献与后台计算。31题真实计划验证、新功能9项真实调用加1项本机检查均有记录；学校、组别和队员资料待补充，视频由团队另行准备。','small'),PageBreak()])
 
 lines=(ROOT/'docs/技术文档.md').read_text(encoding='utf-8').splitlines()
 i=0
@@ -87,7 +89,7 @@ labshot=ROOT/'docs/screenshots/v2-scenario.png'
 if labshot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(labshot).size
-    story.extend([PageBreak(),p('附录：创新实验室运行界面','h2'),Image(str(labshot),width=499,height=499*h/w),Spacer(1,7),p('图 2：8 行合成样本，仅将华东销售额增加 10%，总模拟值 4960；该界面为固定样本的情景模拟，不是预测。','small')])
+    story.extend([PageBreak(),p('附录：创新实验室固定样本验证','h2'),Image(str(labshot),width=499,height=499*h/w),Spacer(1,7),p('图 2：固定功能验证样本的迭代界面。8行合成样本，仅将华东销售额增加10%，总模拟值4960；这是算术情景模拟，不是预测。','small')])
 doc.build(story,onFirstPage=chrome,onLaterPages=chrome)
 reader=PdfReader(str(target))
 assert len(reader.pages)<=30

@@ -186,6 +186,7 @@ const checkedDate = new Intl.DateTimeFormat("sv-SE", {
 }).format(checkedAt);
 const report = {
   checkedAt: checkedAt.toISOString(),
+  sourceCommit: localHead.stdout?.trim() || null,
   ruleCheckedOn: "2026-10-26",
   ruleUrl: "https://www.boxuegu.com/matchTrack/detail/?id=10037",
   ready: checks.every((c) => c.status === "pass" || c.status === "optional"),
