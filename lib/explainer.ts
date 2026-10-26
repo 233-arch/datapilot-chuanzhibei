@@ -66,6 +66,7 @@ export async function explainFacts(
   const started = performance.now();
   const response = await fetcher(base + "/chat/completions", {
     method: "POST",
+    redirect: "manual",
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + config.key,

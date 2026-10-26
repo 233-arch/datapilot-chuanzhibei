@@ -1,5 +1,5 @@
 import { createPlan, requestSchema } from "@/lib/agent";
-import { modelConfig as config } from "@/lib/model-config";
+import { requestModelConfig } from "@/lib/model-config";
 import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 const headers = {
@@ -7,16 +7,18 @@ const headers = {
   "Cache-Control": "no-store",
 };
 export async function GET() {
-  const c = config();
   return Response.json(
     {
-      mode: c.key ? "model" : "demo",
-      model: c.key ? c.model || "deepseek-flash" : null,
+      mode: "demo",
+      model: null,
+      requiresOwnApi: true,
     },
     { headers },
   );
 }
 export async function POST(request: Request) {
+  const { config, response: configError } = requestModelConfig(request);
+  if (configError) return configError;
   const length = Number(request.headers.get("content-length") || "0");
   if (length > 100000)
     return Response.json({ error: "请求过大。" }, { status: 413, headers });
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
       { status: 400, headers },
     );
   }
-  const gate = config().key ? acquireAssistant(request) : { release: () => {} };
+  const gate = acquireAssistant(request);
   if (gate.response) return gate.response;
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -45,14 +47,14 @@ export async function POST(request: Request) {
         send("step", { step: "schema", label: "检索相关字段与统计摘要" });
         send("step", {
           step: "planning",
-          label: config().key
+          label: config.key
             ? "模型正在生成分析计划"
             : "演示引擎正在匹配分析意图",
         });
         const result = await createPlan(
           payload.question,
           payload.profile,
-          config(),
+          config,
           fetch,
           { previousPlan: payload.previousPlan, signal: request.signal },
         );

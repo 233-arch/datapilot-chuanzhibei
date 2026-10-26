@@ -110,6 +110,8 @@ import {
   rangeFilters,
 } from "@/lib/diagnostics";
 import { EvidenceGuide } from "@/components/exploration/evidence-guide";
+import { ApiAccessNotice, VisitorApiSettings } from "@/components/exploration/visitor-api";
+import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
 import { backgroundTask } from "@/lib/background";
 import { campusScenario } from "@/lib/scenarios";
 import {
@@ -614,8 +616,8 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [steps, setSteps] = useState<string[]>([]);
-  const [mode, setMode] = useState<"demo" | "model">("demo");
-  const [modelName, setModelName] = useState<string | null>(null);
+  const visitorModel = useVisitorModel();
+  const mode = visitorModel ? "model" : "demo";
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [search, setSearch] = useState("");
@@ -633,11 +635,6 @@ export default function Home() {
     cursor: -1,
   });
   const [replaying, setReplaying] = useState(false);
-  const [modelHealth, setModelHealth] = useState<{
-    busy: boolean;
-    ok?: boolean;
-    message: string;
-  }>({ busy: false, message: "" });
   const [showSQL, setShowSQL] = useState(false);
   const [ready, setReady] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -883,20 +880,23 @@ export default function Home() {
       .finally(() => {
         if (alive) setReady(true);
       });
-    fetch("/api/analyze")
-      .then((r) => r.json() as Promise<{ mode: string; model: string | null }>)
-      .then((value) => {
-        if (alive) {
-          setMode(value.mode === "model" ? "model" : "demo");
-          setModelName(value.model);
-        }
-      })
-      .catch(() => {});
     return () => {
       alive = false;
       abort.current?.abort();
     };
   }, []);
+  useEffect(() => {
+    const open = () => setDialog("settings");
+    window.addEventListener("datapilot:configure-api", open);
+    return () => window.removeEventListener("datapilot:configure-api", open);
+  }, []);
+  useEffect(() => {
+    requestGeneration.current++;
+    abort.current?.abort();
+    setBusy(false);
+    setSteps([]);
+    setProposal(null);
+  }, [visitorModel]);
   useEffect(() => {
     if (!ready) return;
     setSaved(false);
@@ -1142,7 +1142,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...visitorModelHeaders() },
         body: JSON.stringify({
           question: q,
           previousPlan: scopedPlan,
@@ -1330,30 +1330,6 @@ export default function Home() {
     setView("workspace");
     setTab("overview");
     setPage(1);
-  }
-  async function checkModelHealth() {
-    setModelHealth({ busy: true, message: "正在用固定样本验证模型工具调用…" });
-    try {
-      const response = await fetch("/api/model-health", {
-        method: "POST",
-        signal: AbortSignal.timeout(50000),
-      });
-      const health = (await response.json()) as {
-        ok?: boolean;
-        message?: string;
-      };
-      setModelHealth({
-        busy: false,
-        ok: response.ok && health.ok === true,
-        message: health.message || "验证未通过，请检查服务端配置。",
-      });
-    } catch {
-      setModelHealth({
-        busy: false,
-        ok: false,
-        message: "连接超时或服务暂不可用，请稍后重试。",
-      });
-    }
   }
   function pinCurrent() {
     if (pins.length >= 12) {
@@ -2845,6 +2821,7 @@ export default function Home() {
           </main>
           {assistant && (
             <aside className="assistant-panel" aria-label="分析助手">
+              <ApiAccessNotice />
               <div className="assistant-header">
                 <span className="assistant-symbol">
                   <Sparkles size={18} />
@@ -2854,8 +2831,8 @@ export default function Home() {
                   <small>
                     <span />{" "}
                     {mode === "model"
-                      ? "模型已配置 · 可在设置中验证"
-                      : "演示模式 · 本地意图匹配"}
+                      ? "个人 API · 配置仅本页生效"
+                      : "本地演示 · AI 需自备 API"}
                   </small>
                 </div>
                 <button
@@ -3487,48 +3464,15 @@ export default function Home() {
               <span
                 className={`badge ${mode === "model" ? "green" : "neutral"}`}
               >
-                {mode === "model" ? "模型已配置" : "演示模式"}
+                {mode === "model" ? "个人 API 已配置" : "本地演示"}
               </span>
             </h3>
             <p>
               {mode === "model"
-                ? `当前模型：${modelName}。服务端生成受限计划，浏览器执行聚合。`
-                : "当前使用本地意图匹配，可体验完整的数据操作。要使用真正的大模型规划，请由部署者在服务端配置模型密钥。"}
+                ? `当前模型：${visitorModel?.model}。请求使用你本页填写的 API 配置。`
+                : "当前使用本地意图匹配。要使用真正的大模型规划、知识问答和证据解读，请自行接入 API。"}
             </p>
-            <div className="config-hint">
-              <code>DATA_MODEL_API_KEY</code>
-              <span>服务端密钥，不能放入前端</span>
-              <code>DATA_MODEL_URL</code>
-              <span>兼容 Chat Completions 的服务地址</span>
-              <code>DATA_MODEL_NAME</code>
-              <span>默认 deepseek-flash，可按服务商调整</span>
-            </div>
-            <div className="model-health">
-              <button
-                className="button subtle"
-                disabled={mode !== "model" || modelHealth.busy}
-                onClick={() => void checkModelHealth()}
-              >
-                {modelHealth.busy ? (
-                  <LoaderCircle size={14} className="spin" />
-                ) : (
-                  <ShieldCheck size={14} />
-                )}
-                验证真实模型连接
-              </button>
-              <p>
-                使用 2
-                行固定合成样本验证工具调用，会消耗少量模型额度；不会发送当前数据。
-              </p>
-              {modelHealth.message && (
-                <div
-                  role="status"
-                  className={`model-health-result ${modelHealth.ok === false ? "failed" : ""}`}
-                >
-                  {modelHealth.message}
-                </div>
-              )}
-            </div>
+            <VisitorApiSettings />
           </div>
           <div className="settings-section">
             <h3>

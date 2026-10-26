@@ -1,12 +1,14 @@
 import { knowledgeRequestSchema, answerKnowledge } from "@/lib/knowledge-model";
-import { modelConfig } from "@/lib/model-config";
+import { requestModelConfig } from "@/lib/model-config";
 import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
-  if (!modelConfig().key)
+  const { config, response: configError } = requestModelConfig(request);
+  if (configError) return configError;
+  if (!config.key)
     return Response.json(
-      { error: "真实模型未配置，可以先查看本机检索片段。" },
-      { status: 409 },
+      { error: "AI 功能需自行接入 API，请在工作空间设置中配置；可以先查看本机检索片段。" },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
     );
   let input;
   try {
@@ -24,7 +26,7 @@ export async function POST(request: Request) {
   if (gate.response) return gate.response;
   try {
     return Response.json(
-      await answerKnowledge(input, modelConfig(), request.signal, fetch),
+      await answerKnowledge(input, config, request.signal, fetch),
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

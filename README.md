@@ -20,7 +20,9 @@
 
 公开评审仓库：[233-arch/datapilot-chuanzhibei](https://github.com/233-arch/datapilot-chuanzhibei)，默认分支 `main`，保留完整真实开发历史。评委可直接访问源码、环境模板和 `output/pdf/` 中的技术说明。
 
-截至 2026-10-25，31题原模型固定集仍匹配规划源码；v0.6新增9项真实模型和1项无命中检查通过；仍缺完整团队信息、实际5-8分钟1080p普通话MP4；在线演示为可选加分项，目前保持私人访问。详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+当前 v0.6.1 仍缺完整团队信息、实际5-8分钟1080p普通话MP4；在线演示为可选加分项，已改为公开页面、访客自备 API 的方式。固定题集与实际访问记录分别核验，详见 `docs/提交审查.md`。源码 ZIP 与视频脚本不能代替这些材料。
+
+在线体验：[数问 DataPilot](https://datapilot-chuanzhibei.silky-bear-7395.chatgpt.site/)。无需登录；图表和本机分析可直接体验。真实 AI 需在“工作空间设置”自行接入 API，使用个人账户额度，本站不提供共享密钥。
 
 ## 评审入口与复现
 
@@ -31,9 +33,9 @@ npm ci --include=dev --include=optional --no-audit --no-fund
 npm run dev
 ```
 
-需要 Node.js >=22.13.0，推荐 Node.js 24。无密钥可运行明确标记的演示模式；真实模型在服务端配置。不要在公开仓库中填写密钥。
+需要 Node.js >=22.13.0，推荐 Node.js 24。无个人 API 时运行明确标记的本地演示；真实 AI 在页面设置中自行接入。不要在公开仓库中填写密钥。
 
-[自动检查记录](https://github.com/233-arch/datapilot-chuanzhibei/actions) 包含类型检查、109项业务测试、7项仓库验证测试、源码及历史扫描和生产构建。实际运行结果以 Actions 页面为准；仅有工作流文件不代表远程检查已通过。
+[自动检查记录](https://github.com/233-arch/datapilot-chuanzhibei/actions) 包含类型检查、114项业务/API隔离测试、7项仓库验证测试、源码及历史扫描和生产构建。实际运行结果以 Actions 页面为准；仅有工作流文件不代表远程检查已通过。
 
 `npm run verify:repository` 会匿名核对公开仓库的默认分支、当前提交与必要材料，并生成 `outputs/repository-access.json`。只有验证通过才更新本机评审记录；仅填写 URL 与时间不能通过提交检查。
 
@@ -112,7 +114,11 @@ node scripts/run-framework.mjs dev
 
 无密钥时明确显示**演示模式**，仅匹配字段、分组、趋势、均值、计数、占比，不是大模型推理。预测和因果等未支持任务返回明确提示。
 
-复制 `.env.example` 为 `.env.local`，在本机填写，然后重启服务：
+网页中打开“工作空间设置”，选择 DeepSeek 或 OpenAI，填写自己的 API Key 和支持工具调用的模型 ID，点击“应用并验证我的 API”。配置仅在当前页面内存中生效，刷新或关闭即清除，不写入浏览器存储，也不进入数据集、报告或配置导出。密钥经本站 HTTPS 服务临时转发至所选官方服务商；本站不主动保存或记录请求密钥。可随时点击“清除 API 配置”回到本地演示。
+
+所有网页 AI 路由仅读取当前请求的个人凭据，不使用部署者的环境密钥作为后备。公开转发仅接受预设官方 HTTPS 地址，不接受任意服务地址，也不跟随重定向。OpenAI 选项的实际可用性取决于访问者模型的 Chat Completions 工具调用支持，当前真实服务回归使用 DeepSeek。
+
+以下环境模板仅用于在本机运行独立评测脚本，不能为网页访客提供共享调用：
 
 ```dotenv
 DATA_MODEL_API_KEY=仅在本地填写，禁止提交
@@ -120,9 +126,9 @@ DATA_MODEL_URL=https://api.deepseek.com
 DATA_MODEL_NAME=deepseek-flash
 ```
 
-托管环境使用平台环境变量管理，密钥标记为 secret。适配器需要支持 `tools` / `tool_choice` 的 Chat Completions 服务。基础 URL 不含 `/chat/completions`；供应商需要 `/v1` 时包含 `/v1`。模型名可按供应商调整。
+本机评测适配器需要支持 `tools` / `tool_choice` 的 Chat Completions 服务。基础 URL 不含 `/chat/completions`；供应商需要 `/v1` 时包含 `/v1`。公开托管环境已移除共享模型密钥。
 
-**2026-10-23 已用 DeepSeek `deepseek-flash` 完成31道真实服务固定题，计划与实际聚合结果全部通过。** 证据见 `docs/evidence/deepseek-evaluation.json`；这是8行合成样本回归，不代表通用准确率。官方端点为指定工具调用显式设置 `thinking: { type: "disabled" }`，其他兼容服务不发送此专用字段。密钥只存在本机忽略文件与托管端加密配置。
+真实服务证据见 `docs/evidence/deepseek-evaluation.json` 与 `docs/evidence/intelligence-evaluation.json`，均绑定对应源码指纹；这是固定合成样本回归，不代表通用准确率。DeepSeek 官方端点为指定工具调用显式设置 `thinking: { type: "disabled" }`，其他兼容服务不发送此专用字段。评测密钥仅在本机忽略文件中配置；网页使用访问者本页内存中的个人 API。
 
 ## 验证与构建
 
@@ -178,7 +184,7 @@ node scripts/run-framework.mjs build
 - 不执行模型生成的代码或任意 SQL；SQL 面板仅为口径示意。
 - 图表助手的字段匹配仍为关键词；业务知识问答使用本机TF-IDF稀疏向量混合检索，最多4段送入真实模型，并校验原文引用。没有神经嵌入、外部向量数据库、多模态、MCP 或多 Agent。
 - 支持单表 XLSX / CSV / TSV；旧 XLS 需另存为 XLSX。不支持 Join、预测、因果推断与多人云同步。
-- 私人托管链接默认仅所有者访问，评审访问方式需另外准备。
+- 在线页面公开访问；真实 AI 需评委自行接入 API，未配置时可体验本机分析。评审期间应保持托管服务可用。
 
 赛道：https://www.boxuegu.com/matchTrack/detail/?id=10037
 

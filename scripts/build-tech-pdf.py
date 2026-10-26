@@ -39,7 +39,7 @@ def chrome(canvas,doc):
     canvas.setStrokeColor(LINE);canvas.line(48,height-39,width-48,height-39)
     canvas.setFont('CN',8);canvas.setFillColor(GRAY)
     canvas.drawString(48,height-28,'数问 DataPilot / 参赛作品技术说明')
-    canvas.drawRightString(width-48,height-28,'v0.6.0  |  2026-10-25')
+    canvas.drawRightString(width-48,height-28,'v0.6.1  |  2026-10-26')
     canvas.line(48,41,width-48,41)
     canvas.drawString(48,27,'可核验的数据探索 · 演示模式与真实模型模式明确区分')
     canvas.drawRightString(width-48,27,str(doc.page))

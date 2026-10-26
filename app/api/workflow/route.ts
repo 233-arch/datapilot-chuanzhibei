@@ -1,12 +1,14 @@
 import { workflowRequestSchema, createWorkflow } from "@/lib/workflow-model";
-import { modelConfig } from "@/lib/model-config";
+import { requestModelConfig } from "@/lib/model-config";
 import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
-  if (!modelConfig().key)
+  const { config, response: configError } = requestModelConfig(request);
+  if (configError) return configError;
+  if (!config.key)
     return Response.json(
-      { error: "请先配置并验证真实模型；仍可使用业务诊断手动分析。" },
-      { status: 409 },
+      { error: "AI 功能需自行接入 API，请在工作空间设置中配置；仍可使用业务诊断手动分析。" },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
     );
   let input;
   try {
@@ -24,7 +26,7 @@ export async function POST(request: Request) {
   if (gate.response) return gate.response;
   try {
     return Response.json(
-      await createWorkflow(input, modelConfig(), request.signal, fetch),
+      await createWorkflow(input, config, request.signal, fetch),
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

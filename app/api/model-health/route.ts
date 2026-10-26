@@ -1,5 +1,5 @@
 import { createPlan } from "@/lib/agent";
-import { modelConfig } from "@/lib/model-config";
+import { requestModelConfig } from "@/lib/model-config";
 import { parseCSV, profileDataset, executePlan } from "@/lib/data-engine";
 import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
@@ -8,12 +8,13 @@ const headers = {
   "X-Content-Type-Options": "nosniff",
 };
 export async function POST(request: Request) {
-  const config = modelConfig();
+  const { config, response: configError } = requestModelConfig(request);
+  if (configError) return configError;
   if (!config.key)
     return Response.json(
       {
         ok: false,
-        message: "尚未配置服务端模型密钥。请在部署环境配置后重新验证。",
+        message: "请先在工作空间设置中填写你自己的 API Key 与模型 ID。",
       },
       { status: 409, headers },
     );

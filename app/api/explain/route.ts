@@ -1,12 +1,14 @@
 import { explanationRequest, explainFacts } from "@/lib/explainer";
-import { modelConfig } from "@/lib/model-config";
+import { requestModelConfig } from "@/lib/model-config";
 import { acquireAssistant } from "@/lib/assistant-guard";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
-  if (!modelConfig().key)
+  const { config, response: configError } = requestModelConfig(request);
+  if (configError) return configError;
+  if (!config.key)
     return Response.json(
-      { error: "真实模型未配置，仍可查看本机计算证据。" },
-      { status: 409 },
+      { error: "AI 功能需自行接入 API，请在工作空间设置中配置；仍可查看本机计算证据。" },
+      { status: 409, headers: { "Cache-Control": "no-store" } },
     );
   let payload;
   try {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
   if (gate.response) return gate.response;
   try {
     return Response.json(
-      await explainFacts(payload.facts, modelConfig(), fetch, request.signal),
+      await explainFacts(payload.facts, config, fetch, request.signal),
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

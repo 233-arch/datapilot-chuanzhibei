@@ -161,12 +161,24 @@ if (review?.videoPath && existsSync(review.videoPath)) {
     "blocked",
     "未找到实际演示视频。脚本、字幕和截图不等于已完成MP4。",
   );
+const demoProof = read("outputs/public-demo-verification.json");
+const demoVerified = review?.reviewDemoUrl &&
+  demoProof?.format === "datapilot-public-demo-proof" &&
+  demoProof.url === review.reviewDemoUrl &&
+  demoProof.verifiedAt === review.reviewDemoAccessVerifiedAt &&
+  demoProof.deployedCommit === localHead.stdout?.trim() &&
+  demoProof.anonymousPage?.status === 200 &&
+  demoProof.anonymousApiBlocked === true &&
+  demoProof.requiresOwnApi === true &&
+  demoProof.byok?.realModelChecked === true;
 add(
   "onlineDemo",
-  review?.reviewDemoUrl && review?.reviewDemoAccessVerifiedAt
+  demoVerified
     ? "pass"
     : "optional",
-  "在线演示为可选加分项；当前私人站点并不代表评审已获得访问。保持原访问范围，待确定评审方式。",
+  demoVerified
+    ? "公开演示已通过匿名页面、静态资源及个人 API 实测；真实 AI 需访问者自备 API，未配置时可体验本机分析。单次验证不保证持续可用。"
+    : "在线演示为可选加分项；需当前部署的匿名访问与个人 API 调用证据，私人链接或仅填写 URL 不代表评委已可访问。",
 );
 const checkedAt = new Date();
 const checkedDate = new Intl.DateTimeFormat("sv-SE", {
@@ -174,7 +186,7 @@ const checkedDate = new Intl.DateTimeFormat("sv-SE", {
 }).format(checkedAt);
 const report = {
   checkedAt: checkedAt.toISOString(),
-  ruleCheckedOn: "2026-10-25",
+  ruleCheckedOn: "2026-10-26",
   ruleUrl: "https://www.boxuegu.com/matchTrack/detail/?id=10037",
   ready: checks.every((c) => c.status === "pass" || c.status === "optional"),
   checks,

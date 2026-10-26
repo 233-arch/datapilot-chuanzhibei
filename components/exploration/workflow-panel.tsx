@@ -41,6 +41,8 @@ import {
 } from "@/lib/workflow-run";
 import { validateGuide, checkLabels } from "@/lib/explainer";
 import { backgroundTask } from "@/lib/background";
+import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
+import { ApiAccessNotice } from "./visitor-api";
 type Run = {
   key: string;
   quality: Profile;
@@ -72,6 +74,7 @@ export function WorkflowPanel({
   onExport: (name: string, text: string) => void;
   onOpenDiagnostic: (plan: WorkflowPlan) => void;
 }) {
+  const visitorModel = useVisitorModel();
   const [busy, setBusy] = useState(false),
     [stage, setStage] = useState(-1),
     [error, setError] = useState(""),
@@ -118,7 +121,7 @@ export function WorkflowPanel({
     setRun(null);
     setError("");
     return () => controller.current?.abort();
-  }, [basis]);
+  }, [basis, visitorModel]);
   const canPlan = !!dates.length && !!nums.length && !!dims.length;
   const scope = useMemo(
     () => filterDataset(dataset, filters, profile),
@@ -152,7 +155,7 @@ export function WorkflowPanel({
     try {
       const r = await fetch("/api/workflow", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...visitorModelHeaders() },
         signal: c.signal,
         body: JSON.stringify({
           question: state.question,
@@ -190,7 +193,7 @@ export function WorkflowPanel({
   async function guideFor(computed: Run, c: AbortController) {
     const r = await fetch("/api/explain", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...visitorModelHeaders() },
       signal: c.signal,
       body: JSON.stringify({ facts: computed.facts }),
     });
@@ -246,6 +249,11 @@ export function WorkflowPanel({
         guideError: "",
       };
       setRun(computed);
+      if (!visitorModel) {
+        setRun({ ...computed, guideError: "本机计算已完成。AI 解读需先配置你自己的 API。" });
+        setStage(4);
+        return;
+      }
       setStage(3);
       try {
         const guide = await guideFor(computed, c);
@@ -363,7 +371,7 @@ export function WorkflowPanel({
       <div className="intelligence-actions">
         <button
           className="button"
-          disabled={busy || !canPlan || !state.question.trim()}
+          disabled={busy || !canPlan || !state.question.trim() || !visitorModel}
           onClick={generate}
         >
           {busy && !plan ? (
@@ -380,6 +388,7 @@ export function WorkflowPanel({
           </button>
         )}
       </div>
+      <ApiAccessNotice />
       <p className="diagnostic-note">
         仅支持合计指标的周期比较与最多3个维度分解。字段定义、日期上下文、已有筛选及命中的知识片段会发给模型，完整表格留在本机。分解结果不能证明业务因果。
       </p>
@@ -697,7 +706,7 @@ export function WorkflowPanel({
               {validRun.guideError} 已计算的结果仍可核对和导出。{" "}
               <button
                 className="text-button"
-                disabled={busy}
+                disabled={busy || !visitorModel}
                 onClick={retryGuide}
               >
                 重试证据导读

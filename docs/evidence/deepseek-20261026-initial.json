@@ -1,0 +1,821 @@
+{
+  "status": "failed",
+  "mode": "model",
+  "sourceFingerprint": "ddd64cdf2e3dbf65269999368a7ab878db2a33e3f94516b0159b594a30c6c6e2",
+  "latencyMs": {
+    "median": 1197,
+    "p95": 1432
+  },
+  "model": "deepseek-flash",
+  "date": "2026-10-26T07:23:44.319Z",
+  "dataset": "8行合成样本",
+  "total": 31,
+  "passed": 30,
+  "results": [
+    {
+      "question": "按地区统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区统计销售额合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 500,
+        "华南": 4410
+      },
+      "actual": {
+        "华南": 4410,
+        "华东": 500
+      },
+      "latencyMs": 1059
+    },
+    {
+      "question": "各地区平均利润",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "各地区平均利润",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "mean",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 12.5,
+        "华南": 110.25
+      },
+      "actual": {
+        "华南": 110.25,
+        "华东": 12.5
+      },
+      "latencyMs": 1410
+    },
+    {
+      "question": "按月查看销售额合计趋势",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按月销售额合计趋势",
+        "chart": "line",
+        "groupBy": "日期",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "asc",
+        "limit": 30
+      },
+      "expected": {
+        "2026-01": 460,
+        "2026-02": 4450
+      },
+      "actual": {
+        "2026-01": 460,
+        "2026-02": 4450
+      },
+      "latencyMs": 1205
+    },
+    {
+      "question": "按地区统计营收合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区统计营收合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 500,
+        "华南": 4410
+      },
+      "actual": {
+        "华南": 4410,
+        "华东": 500
+      },
+      "latencyMs": 989
+    },
+    {
+      "question": "只看华东，按产品类别计算销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "华东地区按产品类别的销售额合计",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "地区",
+            "operator": "eq",
+            "value": "华东"
+          }
+        ]
+      },
+      "expected": {
+        "配件": 240,
+        "家居": 260
+      },
+      "actual": {
+        "家居": 260,
+        "配件": 240
+      },
+      "latencyMs": 1251
+    },
+    {
+      "question": "改成均值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "销售额月度趋势",
+        "chart": "line",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "mean",
+        "timeGrain": "month",
+        "sort": "natural",
+        "limit": 12
+      },
+      "expected": {
+        "华东": 12.5,
+        "华南": 110.25
+      },
+      "actual": {
+        "华东": 12.5,
+        "华南": 110.25
+      },
+      "latencyMs": 1249
+    },
+    {
+      "question": "按地区统计记录数",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区统计记录数",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "",
+        "aggregate": "count",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 4,
+        "华南": 4
+      },
+      "actual": {
+        "华东": 4,
+        "华南": 4
+      },
+      "latencyMs": 1225
+    },
+    {
+      "question": "按地区统计利润合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区统计利润合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 50,
+        "华南": 441
+      },
+      "actual": {
+        "华南": 441,
+        "华东": 50
+      },
+      "latencyMs": 1194
+    },
+    {
+      "question": "按地区计算销售额平均值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区计算销售额平均值",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "mean",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 125,
+        "华南": 1102.5
+      },
+      "actual": {
+        "华南": 1102.5,
+        "华东": 125
+      },
+      "latencyMs": 1108
+    },
+    {
+      "question": "按地区查看销售额最小值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区查看销售额最小值",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "min",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 100,
+        "华南": 120
+      },
+      "actual": {
+        "华南": 120,
+        "华东": 100
+      },
+      "latencyMs": 1005
+    },
+    {
+      "question": "按地区查看销售额最大值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区查看销售额最大值",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "max",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 150,
+        "华南": 4000
+      },
+      "actual": {
+        "华南": 4000,
+        "华东": 150
+      },
+      "latencyMs": 1181
+    },
+    {
+      "question": "按地区查看利润最小值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区查看利润最小值",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "min",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 10,
+        "华南": 12
+      },
+      "actual": {
+        "华南": 12,
+        "华东": 10
+      },
+      "latencyMs": 1210
+    },
+    {
+      "question": "按地区查看利润最大值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按地区查看利润最大值",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "max",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "华东": 15,
+        "华南": 400
+      },
+      "actual": {
+        "华南": 400,
+        "华东": 15
+      },
+      "latencyMs": 1107
+    },
+    {
+      "question": "按产品类别统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按产品类别统计销售额合计",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "配件": 520,
+        "家居": 4390
+      },
+      "actual": {
+        "家居": 4390,
+        "配件": 520
+      },
+      "latencyMs": 1358
+    },
+    {
+      "question": "按产品类别统计利润合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按产品类别统计利润合计",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "配件": 52,
+        "家居": 439
+      },
+      "actual": {
+        "家居": 439,
+        "配件": 52
+      },
+      "latencyMs": 1432
+    },
+    {
+      "question": "按产品类别计算销售额平均值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按产品类别计算销售额平均值",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "销售额",
+        "aggregate": "mean",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "配件": 130,
+        "家居": 1097.5
+      },
+      "actual": {
+        "家居": 1097.5,
+        "配件": 130
+      },
+      "latencyMs": 1014
+    },
+    {
+      "question": "按产品类别统计记录数",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按产品类别统计记录数",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "",
+        "aggregate": "count",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "配件": 4,
+        "家居": 4
+      },
+      "actual": {
+        "配件": 4,
+        "家居": 4
+      },
+      "latencyMs": 912
+    },
+    {
+      "question": "按渠道统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按渠道统计销售额合计",
+        "chart": "bar",
+        "groupBy": "渠道",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "线上": 520,
+        "线下": 4390
+      },
+      "actual": {
+        "线下": 4390,
+        "线上": 520
+      },
+      "latencyMs": 1172
+    },
+    {
+      "question": "按渠道统计利润合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按渠道统计利润合计",
+        "chart": "bar",
+        "groupBy": "渠道",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "线上": 52,
+        "线下": 439
+      },
+      "actual": {
+        "线下": 439,
+        "线上": 52
+      },
+      "latencyMs": 972
+    },
+    {
+      "question": "按渠道计算销售额平均值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按渠道计算销售额平均值",
+        "chart": "bar",
+        "groupBy": "渠道",
+        "metric": "销售额",
+        "aggregate": "mean",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30
+      },
+      "expected": {
+        "线上": 130,
+        "线下": 1097.5
+      },
+      "actual": {
+        "线下": 1097.5,
+        "线上": 130
+      },
+      "latencyMs": 1266
+    },
+    {
+      "question": "按月查看利润合计趋势",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按月查看利润合计趋势",
+        "chart": "line",
+        "groupBy": "日期",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "asc",
+        "limit": 30
+      },
+      "expected": {
+        "2026-01": 46,
+        "2026-02": 445
+      },
+      "actual": {
+        "2026-01": 46,
+        "2026-02": 445
+      },
+      "latencyMs": 1056
+    },
+    {
+      "question": "按月统计记录数趋势",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "按月统计记录数趋势",
+        "chart": "line",
+        "groupBy": "日期",
+        "metric": "",
+        "aggregate": "count",
+        "timeGrain": "month",
+        "sort": "asc",
+        "limit": 30
+      },
+      "expected": {
+        "2026-01": 4,
+        "2026-02": 4
+      },
+      "actual": {
+        "2026-01": 4,
+        "2026-02": 4
+      },
+      "latencyMs": 1211
+    },
+    {
+      "question": "只看华东，按产品类别计算利润合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "华东地区各产品类别利润合计",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "地区",
+            "operator": "eq",
+            "value": "华东"
+          }
+        ]
+      },
+      "expected": {
+        "配件": 24,
+        "家居": 26
+      },
+      "actual": {
+        "家居": 26,
+        "配件": 24
+      },
+      "latencyMs": 1239
+    },
+    {
+      "question": "只看华南，按产品类别计算销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "华南地区各产品类别销售额合计",
+        "chart": "bar",
+        "groupBy": "产品类别",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "地区",
+            "operator": "eq",
+            "value": "华南"
+          }
+        ]
+      },
+      "expected": {
+        "配件": 280,
+        "家居": 4130
+      },
+      "actual": {
+        "家居": 4130,
+        "配件": 280
+      },
+      "latencyMs": 1023
+    },
+    {
+      "question": "只看线上渠道，按地区统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "线上渠道各地区销售额合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "渠道",
+            "operator": "eq",
+            "value": "线上"
+          }
+        ]
+      },
+      "expected": {
+        "华东": 240,
+        "华南": 280
+      },
+      "actual": {
+        "华南": 280,
+        "华东": 240
+      },
+      "latencyMs": 1254
+    },
+    {
+      "question": "只看线下渠道，按地区统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "线下渠道各地区的销售额合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "渠道",
+            "operator": "eq",
+            "value": "线下"
+          }
+        ]
+      },
+      "expected": {
+        "华东": 260,
+        "华南": 4130
+      },
+      "actual": {
+        "华南": 4130,
+        "华东": 260
+      },
+      "latencyMs": 1419
+    },
+    {
+      "question": "销售额大于等于150的记录，按地区统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "销售额≥150的记录按地区统计销售额合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "销售额",
+            "operator": "gte",
+            "value": "150"
+          }
+        ]
+      },
+      "expected": {
+        "华东": 150,
+        "华南": 4160
+      },
+      "actual": {
+        "华南": 4160,
+        "华东": 150
+      },
+      "latencyMs": 1197
+    },
+    {
+      "question": "日期从2026-02-01到2026-02-28，按地区统计销售额合计",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "2026年2月各地区销售额合计",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "销售额",
+        "aggregate": "sum",
+        "timeGrain": "day",
+        "sort": "desc",
+        "limit": 30,
+        "filters": [
+          {
+            "field": "日期",
+            "operator": "gte",
+            "value": "2026-02-01"
+          },
+          {
+            "field": "日期",
+            "operator": "lte",
+            "value": "2026-02-28"
+          }
+        ]
+      },
+      "expected": {
+        "华东": 290,
+        "华南": 4160
+      },
+      "actual": {
+        "华南": 4160,
+        "华东": 290
+      },
+      "latencyMs": 1442
+    },
+    {
+      "question": "改成最大值",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "销售额月度趋势",
+        "chart": "line",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "max",
+        "timeGrain": "month",
+        "sort": "natural",
+        "limit": 12
+      },
+      "expected": {
+        "华东": 15,
+        "华南": 400
+      },
+      "actual": {
+        "华东": 15,
+        "华南": 400
+      },
+      "latencyMs": 995
+    },
+    {
+      "question": "只看华南",
+      "pass": false,
+      "mode": "model",
+      "plan": {
+        "title": "华南地区销售额月度趋势",
+        "chart": "line",
+        "groupBy": "日期",
+        "metric": "利润",
+        "aggregate": "mean",
+        "timeGrain": "month",
+        "sort": "natural",
+        "limit": 12,
+        "filters": [
+          {
+            "field": "地区",
+            "operator": "eq",
+            "value": "华南"
+          }
+        ]
+      },
+      "expected": {
+        "华南": 110.25
+      },
+      "actual": {
+        "2026-01": 12.5,
+        "2026-02": 208
+      },
+      "latencyMs": 1266
+    },
+    {
+      "question": "哪个地区表现最好，以利润合计为指标",
+      "pass": true,
+      "mode": "model",
+      "plan": {
+        "title": "各地区利润合计对比",
+        "chart": "bar",
+        "groupBy": "地区",
+        "metric": "利润",
+        "aggregate": "sum",
+        "timeGrain": "month",
+        "sort": "desc",
+        "limit": 2
+      },
+      "expected": {
+        "华东": 50,
+        "华南": 441
+      },
+      "actual": {
+        "华南": 441,
+        "华东": 50
+      },
+      "latencyMs": 1036
+    }
+  ],
+  "limitations": "固定小样本回归，不能据此宣称通用准确率。未记录密钥与请求头。"
+}

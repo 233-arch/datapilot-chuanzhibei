@@ -18,6 +18,8 @@ import {
   validateKnowledgeAnswer,
 } from "@/lib/knowledge";
 import type { z } from "zod";
+import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
+import { ApiAccessNotice } from "./visitor-api";
 type Answer = z.infer<typeof knowledgeAnswerSchema> & {
   usage?: { input: number | null; output: number | null };
   latencyMs?: number;
@@ -29,6 +31,7 @@ export function KnowledgePanel({
   documents: KnowledgeDocument[];
   onChange: (documents: KnowledgeDocument[]) => void;
 }) {
+  const visitorModel = useVisitorModel();
   const [editing, setEditing] = useState(false),
     [title, setTitle] = useState(""),
     [version, setVersion] = useState("1.0"),
@@ -53,7 +56,7 @@ export function KnowledgePanel({
     setSelected(null);
     setError("");
     return () => controller.current?.abort();
-  }, [signature]);
+  }, [signature, visitorModel]);
   function changeQuestion(value: string) {
     controller.current?.abort();
     setBusy(false);
@@ -90,7 +93,7 @@ export function KnowledgePanel({
       const snippets = hits.map(({ score, coverage, ...s }) => s);
       const r = await fetch("/api/knowledge", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...visitorModelHeaders() },
         body: JSON.stringify({ question, snippets }),
         signal: c.signal,
       });
@@ -270,7 +273,7 @@ export function KnowledgePanel({
         <div className="intelligence-actions">
           <button
             className="button"
-            disabled={busy || !hits.length || !question.trim()}
+            disabled={busy || !hits.length || !question.trim() || !visitorModel}
             onClick={ask}
           >
             {busy ? (
@@ -295,6 +298,7 @@ export function KnowledgePanel({
         <p className="diagnostic-note">
           本机使用TF-IDF稀疏向量余弦相似度与词项覆盖混合检索，不使用神经嵌入模型。检索后才请求真实AI；回答仍需核对原文与适用版本。
         </p>
+        <ApiAccessNotice />
       </div>
       {question.trim() && !hits.length && (
         <p className="diagnostic-warning" role="status">

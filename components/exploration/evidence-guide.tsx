@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Fact } from "@/lib/diagnostics";
 import { formatNumber } from "@/lib/data-engine";
 import { checkLabels } from "@/lib/explainer";
+import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
+import { ApiAccessNotice } from "./visitor-api";
 import { Sparkles, ArrowUpRight, LoaderCircle, X } from "lucide-react";
 type Guide = {
   focus: string[];
@@ -17,6 +19,7 @@ export function EvidenceGuide({
   facts: Fact[];
   onSource?: (fact: Fact) => void;
 }) {
+  const visitorModel = useVisitorModel();
   const [guide, setGuide] = useState<Guide | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -33,7 +36,7 @@ export function EvidenceGuide({
       generation.current++;
       abort.current?.abort();
     };
-  }, [key]);
+  }, [key, visitorModel]);
   async function generate() {
     const current = ++generation.current;
     abort.current?.abort();
@@ -44,7 +47,7 @@ export function EvidenceGuide({
     try {
       const response = await fetch("/api/explain", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...visitorModelHeaders() },
         body: JSON.stringify({ facts }),
         signal: controller.signal,
       });
@@ -73,7 +76,7 @@ export function EvidenceGuide({
         </div>
         <button
           className="button subtle"
-          disabled={busy || !facts.length}
+          disabled={busy || !facts.length || !visitorModel}
           onClick={generate}
         >
           <Sparkles size={14} />
@@ -93,6 +96,7 @@ export function EvidenceGuide({
           </button>
         )}
       </div>
+      <ApiAccessNotice />
       {busy && (
         <p role="status">
           <LoaderCircle size={14} className="spin" /> 正在选择重要事实与核查事项

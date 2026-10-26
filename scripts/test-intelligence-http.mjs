@@ -22,7 +22,8 @@ export async function verifyIntelligenceHttp(base, extraHeaders = {}) {
     signal: AbortSignal.timeout(15000),
   });
   assert.equal(status.status, 200);
-  const mode = (await status.json()).mode;
+  const state = await status.json();
+  const mode = state.requiresOwnApi && extraHeaders["X-DataPilot-Api-Key"] ? "model" : state.mode;
   if (mode !== "model") {
     for (const route of ["/api/workflow", "/api/knowledge"])
       assert.equal((await post(route, {})).status, 409);

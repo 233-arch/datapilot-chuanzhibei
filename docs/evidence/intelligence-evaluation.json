@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-25T11:57:22.796Z",
+  "checkedAt": "2026-10-26T07:27:51.166Z",
   "format": "datapilot-intelligence-evaluation",
-  "sourceFingerprint": "4007fbec3ae598d5c6f6220663aa45733167218ce41f9bc6ab38150cf6a4330b",
+  "sourceFingerprint": "e35fbd45a8310122ccfe50230a04936a488c96c0b0e54f7be9e75164e406d4e2",
   "model": "deepseek-flash",
   "status": "passed",
   "total": 10,
@@ -15,7 +15,7 @@
       "passed": true,
       "mode": "model",
       "plan": {
-        "title": "2026年2月与1月销售额合计对比：按地区与产品类别拆解",
+        "title": "销售额合计周期对比：2026年2月 vs 2026年1月（按地区、产品类别拆解）",
         "date": "日期",
         "metric": "销售额",
         "dimensions": [
@@ -34,10 +34,10 @@
       },
       "actualDelta": 3990,
       "expectedDelta": 3990,
-      "latencyMs": 1262,
+      "latencyMs": 1472,
       "usage": {
         "input": 1245,
-        "output": 201
+        "output": 208
       }
     },
     {
@@ -45,7 +45,7 @@
       "passed": true,
       "mode": "model",
       "plan": {
-        "title": "2026年2月与2026年1月利润合计对比（按地区、渠道拆解）",
+        "title": "2026年2月与2026年1月利润合计比较（按地区、渠道拆解）",
         "date": "日期",
         "metric": "利润",
         "dimensions": [
@@ -64,7 +64,7 @@
       },
       "actualDelta": 399,
       "expectedDelta": 399,
-      "latencyMs": 1054,
+      "latencyMs": 1356,
       "usage": {
         "input": 1234,
         "output": 203
@@ -75,7 +75,7 @@
       "passed": true,
       "mode": "model",
       "plan": {
-        "title": "2026年2月与2026年1月销售额合计对比（按产品类别拆解）",
+        "title": "2026年2月与2026年1月销售额合计对比（按产品类别拆解，保留华东筛选）",
         "date": "日期",
         "metric": "销售额",
         "dimensions": [
@@ -93,10 +93,10 @@
       },
       "actualDelta": 80,
       "expectedDelta": 80,
-      "latencyMs": 1116,
+      "latencyMs": 1057,
       "usage": {
         "input": 1250,
-        "output": 200
+        "output": 204
       }
     },
     {
@@ -124,7 +124,7 @@
       },
       "actualDelta": 399,
       "expectedDelta": 399,
-      "latencyMs": 924,
+      "latencyMs": 980,
       "usage": {
         "input": 1406,
         "output": 201
@@ -135,7 +135,7 @@
       "passed": true,
       "mode": "model",
       "status": "answered",
-      "answer": "总体利润率的计算方式是：利润合计 ÷ 销售额合计，即采用总体比率，而不是把每行的利润率求平均。需要注意，“利润”字段是每笔订单的利润金额，可按地区分组求和用于比较，它不是利润率。",
+      "answer": "利润率应采用总体比率计算，即用利润合计除以销售额合计，而不是对逐行利润率取平均值。需要注意的是，利润字段记录的是每笔订单的利润金额（可按地区分组求和比较），它本身不是利润率字段。",
       "citations": [
         {
           "id": "income-v1:1",
@@ -151,10 +151,10 @@
       "sourceIds": [
         "income-v1:1"
       ],
-      "latencyMs": 1078,
+      "latencyMs": 1230,
       "usage": {
         "input": 730,
-        "output": 148
+        "output": 146
       }
     },
     {
@@ -162,7 +162,7 @@
       "passed": true,
       "mode": "model",
       "status": "answered",
-      "answer": "按该规则，同一订单的多行金额需要相加，计入销售额合计；而订单标识只计一次，即分母用订单编号去重后的数量。因此客单价 = 有效订单的销售额合计 ÷ 订单编号去重数量，多行不会被重复计入订单数。",
+      "answer": "按该规则，同一订单存在多行时，先把这些行的金额相加计入销售额合计，而订单标识（订单编号）只在分母中去重计一次。因此客单价 = 有效订单的销售额合计 ÷ 订单编号去重数量。",
       "citations": [
         {
           "id": "order-v1:1",
@@ -178,10 +178,10 @@
       "sourceIds": [
         "order-v1:1"
       ],
-      "latencyMs": 961,
+      "latencyMs": 1086,
       "usage": {
         "input": 681,
-        "output": 158
+        "output": 151
       }
     },
     {
@@ -189,7 +189,7 @@
       "passed": true,
       "mode": "model",
       "status": "answered",
-      "answer": "应该扣除。按收入统计规则，净收入必须扣除已成功退款的金额。",
+      "answer": "应该扣除。按本评测的收入统计规则，净收入必须扣除已成功退款的金额。",
       "citations": [
         {
           "id": "income-v1:1",
@@ -200,10 +200,10 @@
       "sourceIds": [
         "income-v1:1"
       ],
-      "latencyMs": 821,
+      "latencyMs": 841,
       "usage": {
         "input": 733,
-        "output": 100
+        "output": 102
       }
     },
     {
@@ -211,17 +211,12 @@
       "passed": true,
       "mode": "model",
       "status": "conflict",
-      "answer": "两份规则对“净收入是否扣除退款”的规定相互矛盾，且是两个不同版本，无法确定应以哪一版为准：\n\n- 版本2（新规则）规定：净收入不扣除任何退款金额，已成功退款的订单也完全计入净收入，并明确说明“此规定与旧版本不同”。\n- 版本1（旧规则）规定：净收入必须扣除已成功退款的金额。\n\n因此存在版本冲突，需要由业务方确认适用版本后才能给出唯一结论。",
+      "answer": "两份规则对退款处理的规定相互冲突：新版本（v2）规定净收入不扣除任何退款金额，已成功退款的订单也完全计入净收入；旧版本（v1）则规定净收入必须扣除已成功退款的金额。因此无法确定应适用哪一版本的口径。",
       "citations": [
         {
           "id": "income-v2:1",
           "quote": "本评测的新规则规定净收入不扣除任何退款金额，已成功退款的订单也完全计入净收入。",
           "quoteIndex": 0
-        },
-        {
-          "id": "income-v2:1",
-          "quote": "此规定与旧版本不同。",
-          "quoteIndex": 1
         },
         {
           "id": "income-v1:1",
@@ -233,10 +228,10 @@
         "income-v2:1",
         "income-v1:1"
       ],
-      "latencyMs": 1451,
+      "latencyMs": 1076,
       "usage": {
         "input": 866,
-        "output": 221
+        "output": 164
       }
     },
     {
@@ -244,7 +239,7 @@
       "passed": true,
       "mode": "model",
       "status": "insufficient",
-      "answer": "无法确定。现有资料明确说明其只定义订单去重与利润率，不包含税种、纳税申报周期或税务规定，因此无法回答本公司的纳税申报周期。",
+      "answer": "无法确定。现有资料明确说明该手册仅定义订单去重与利润率，不包含税种、纳税申报周期或税务规定，因此没有依据回答本公司的纳税申报周期。",
       "citations": [
         {
           "id": "unrelated:1",
@@ -255,10 +250,10 @@
       "sourceIds": [
         "unrelated:1"
       ],
-      "latencyMs": 659,
+      "latencyMs": 1177,
       "usage": {
         "input": 650,
-        "output": 119
+        "output": 121
       }
     },
     {
