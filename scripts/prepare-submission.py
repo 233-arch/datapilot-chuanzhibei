@@ -63,6 +63,8 @@ selected = {
 }
 for name in ["第三方依赖.md", "开源与原创说明.md", "录制讲解稿.md", "演示脚本.md", "v0.6.2验收.md"]:
     selected[ROOT / "docs" / name] = "04_参考资料/" + name
+for name in ["v6-2-readable-desktop.png", "v6-2-readable-mobile.png"]:
+    selected[ROOT / "docs/screenshots" / name] = "04_参考资料/screenshots/" + name
 for name in ["innovation.csv", "validation.csv", "period-comparison.xlsx"]:
     selected[ROOT / "docs/samples" / name] = "04_参考资料/演示样本/" + name
 for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "intelligence-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
