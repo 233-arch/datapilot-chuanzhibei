@@ -1,0 +1,127 @@
+.main-chart-card, .small-chart-grid > .chart-card { border-radius: 16px; border-color: #e0e9e3; box-shadow: 0 4px 22px #244b3410; }
+.main-chart-card .card-heading, .small-chart-grid .card-heading { padding: 22px 22px 12px; }
+.main-chart-card .card-heading h3, .small-chart-grid .card-heading h3 { color: #244c3e; font-size: 17px; line-height: 1.5; }
+.main-chart-card .card-heading p, .small-chart-grid .card-heading p { color: #657c6e; font-size: 14px; }
+.main-chart-card .chart-controls { padding: 4px 22px 12px; gap: 12px; flex-wrap: wrap; }
+.main-chart-card .chart-controls select { border-radius: 7px; padding: 7px 9px; }
+.main-chart-card .chart-insight { border-radius: 10px; padding: 13px 15px; background: #f2f8f3; margin: 14px 20px 20px; }
+.small-chart-grid { align-items: start; }
+.interactive-chart { min-width: 0; color: #355d4b; container-type: inline-size; }
+.viz-toolbar { margin: 0 20px 12px; padding: 11px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; border-top: 1px solid #edf2ee; }
+.viz-scope { color: #567263; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viz-scope > span { color: #708478; }
+.viz-actions, .viz-switch { display: flex; align-items: center; gap: 5px; }
+.viz-actions button, .viz-data button, .viz-selection button, .viz-range button, .viz-table-note button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; padding: 6px 9px; border: 1px solid transparent; border-radius: 7px; color: #4e6b5c; font-size: 14px; white-space: nowrap; }
+.viz-actions button:hover, .viz-data button:hover, .viz-selection button:hover { background: #eaf3ed; color: #11664e; }
+.viz-actions button[aria-pressed="true"] { background: #e4f1e9; color: #0f745a; box-shadow: 0 1px 2px #1539240a; }
+.viz-switch { padding: 3px; background: #f3f6f3; border-radius: 9px; gap: 1px; }
+.viz-switch button[aria-pressed="true"] { background: #fff; box-shadow: 0 1px 4px #244b3414; }
+.viz-canvas { min-width: 0; padding: 0 14px 10px 2px; }
+.viz-plot { width: 100%; height: 320px; min-width: 0; position: relative; }
+.viz-compact .viz-plot { height: 245px; }
+.viz-plot .recharts-surface { overflow: visible; }
+.viz-plot .recharts-surface:focus-visible { outline: 2px solid #258967; outline-offset: 3px; border-radius: 10px; }
+.viz-plot .recharts-cartesian-axis-tick-value { font-variant-numeric: tabular-nums; }
+.viz-plot .recharts-tooltip-wrapper { z-index: 5; }
+.viz-tooltip { padding: 16px 18px; min-width: 190px; max-width: min(280px, 75vw); border: 1px solid #dce8e0; border-radius: 13px; box-shadow: 0 12px 36px #173a2526; background: #fffffff5; backdrop-filter: blur(14px); color: #375848; font-size: 13px; }
+.viz-tooltip > div { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.viz-tooltip i, .viz-legend i, .viz-data th > i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.viz-tooltip > div strong { font-size: 15px; white-space: normal; overflow-wrap: anywhere; }
+.viz-tooltip > span { display: block; color: #698071; font-size: 13px; }
+.viz-tooltip > b { display: block; font-size: 24px; font-weight: 650; color: #183e2f; margin: 4px 0 12px; font-variant-numeric: tabular-nums; }
+.viz-tooltip > b small { font-size: 13px; font-weight: 400; margin-left: 5px; }
+.viz-tooltip p { display: flex; justify-content: space-between; gap: 20px; margin-top: 6px; font-size: 13px; }
+.viz-tooltip p strong { font-weight: 550; }
+.viz-tooltip em { display: block; border-top: 1px solid #e9efea; margin-top: 12px; padding-top: 9px; color: #738476; font-size: 13px; font-style: normal; }
+.viz-donut { display: grid; grid-template-columns: minmax(160px, .9fr) minmax(150px, 1fr); align-items: center; gap: 4px 10px; padding: 0 22px 14px 12px; }
+.viz-donut .viz-plot { height: 290px; }
+.viz-compact.viz-donut { padding: 0 18px 14px 8px; grid-template-columns: minmax(140px, .9fr) minmax(140px, 1fr); gap: 6px; }
+.viz-compact.viz-donut .viz-plot { height: 230px; }
+.viz-donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; pointer-events: none; padding: 0 24%; text-align: center; }
+.viz-donut-center > span { color: #6c7e72; font-size: 13px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viz-donut-center > strong { font-size: clamp(20px, 2vw, 28px); color: #234c39; font-variant-numeric: tabular-nums; letter-spacing: -.7px; line-height: 1.4; }
+.viz-donut-center > small { font-size: 13px; color: #718276; }
+.viz-legend { min-width: 0; display: flex; flex-direction: column; gap: 5px; max-height: 340px; overflow-y: auto; }
+.viz-legend > button { display: flex; align-items: center; gap: 9px; text-align: left; width: 100%; padding: 10px 9px; border: 1px solid transparent; border-radius: 9px; transition: background .15s, border-color .15s; }
+.viz-legend > button:hover, .viz-legend > button:focus-visible, .viz-legend > button.selected { background: #edf6ef; border-color: #dbeade; }
+.viz-legend > button > span { min-width: 0; font-size: 14px; flex: 1; color: #3c5f4d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viz-legend small { display: block; font-size: 13px; font-weight: 400; color: #718373; margin-top: 3px; }
+.viz-legend strong { margin-left: auto; font-size: 14px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; color: #284f3b; }
+.viz-legend > p { padding: 7px 9px; font-size: 13px; line-height: 1.6; color: #738173; }
+.viz-data { padding: 0 20px 16px; }
+.viz-data-caption, .viz-table-note { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 13px; color: #62796a; margin: 2px 0 9px; }
+.viz-data-caption > span { overflow-wrap: anywhere; }
+.viz-data-caption button { color: #176c52; background: #f0f7f2; }
+.viz-table-scroll { max-height: 350px; overflow: auto; border: 1px solid #e1e9e3; border-radius: 10px; }
+.viz-data table { width: 100%; min-width: 440px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.viz-data th, .viz-data td { padding: 12px 13px; border-bottom: 1px solid #eaf0eb; font-size: 14px; text-align: right; white-space: nowrap; font-weight: 400; }
+.viz-data thead th { position: sticky; top: 0; background: #f4f8f4; color: #526c5a; font-weight: 600; z-index: 1; }
+.viz-data th:first-child { text-align: left; min-width: 120px; max-width: 240px; white-space: normal; overflow-wrap: anywhere; }
+.viz-data th > i { margin-right: 8px; }
+.viz-data th button { font-weight: inherit; padding: 0; }
+.viz-data td button { padding: 0 4px; color: #138064; }
+.viz-data tr:hover { background: #f8fbf8; }
+.viz-data tr:last-child > * { border-bottom: none; }
+.viz-export-status { margin-top: 9px; font-size: 13px; color: #347357; line-height: 1.7; }
+.viz-selection, .viz-range { margin: 0 20px 14px; padding: 10px 13px; background: #f1f7f2; border: 1px solid #deebe0; border-radius: 9px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: #45694f; }
+.viz-selection > div { display: flex; gap: 5px; }
+.viz-range button { background: #14795f; color: white; }
+.viz-dialog { border: 1px solid #dbe6de; border-radius: 20px; padding: 0; margin: auto; width: min(1120px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); overflow: auto; background: #fff; color: #294c3a; box-shadow: 0 30px 100px #10291f50; }
+.viz-dialog::backdrop { background: #102e2466; backdrop-filter: blur(5px); }
+.viz-dialog:not([open]) { display: none; }
+.viz-focus { padding: 26px 28px 22px; container-type: inline-size; }
+.viz-focus > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 18px; position: sticky; top: 0; background: white; z-index: 6; padding-bottom: 10px; }
+.viz-focus > header span { color: #66816e; font-size: 13px; }
+.viz-focus h2 { font-size: 24px; margin: 5px 0; line-height: 1.5; overflow-wrap: anywhere; }
+.viz-focus header p { color: #667e6b; font-size: 14px; }
+.viz-focus header > button { padding: 9px; background: #f0f5f1; border-radius: 50%; color: #4a6652; }
+.viz-focus .viz-toolbar, .viz-focus .viz-selection, .viz-focus .viz-range { margin-left: 0; margin-right: 0; }
+.viz-focus .viz-plot { height: min(460px, 55dvh); min-height: 260px; }
+.viz-focus .viz-donut { grid-template-columns: minmax(260px, 1fr) minmax(200px, .75fr); }
+.viz-focus .viz-data { padding-left: 0; padding-right: 0; }
+.viz-focus .viz-table-scroll { max-height: 52dvh; }
+.viz-focus-summary { border-top: 1px solid #e5ede6; margin-top: 14px; padding-top: 16px; color: #5b7563; font-size: 14px; line-height: 1.8; }
+.interactive-chart button:focus-visible, .viz-dialog button:focus-visible, .waterfall-wrap [role="button"]:focus-visible { outline: 2px solid #18896a; outline-offset: 3px; }
+.is-small .viz-toolbar { margin-left: 18px; margin-right: 18px; }
+.is-small .viz-scope > span { display: none; }
+.waterfall-wrap [role="button"] { cursor: pointer; }
+.waterfall-wrap [role="button"] rect { transition: opacity .15s; }
+.waterfall-wrap [role="button"]:hover rect { opacity: .72; }
+.scenario-chart { background: linear-gradient(180deg, #fbfdfb, white); border: 1px solid #e4ece5; border-radius: 12px; padding-top: 12px; }
+.scenario-series { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: #637c6b; }
+.scenario-series button { display: inline-flex; gap: 7px; align-items: center; padding: 6px 9px; border: 1px solid transparent; border-radius: 7px; }
+.scenario-series button[aria-pressed="true"] { background: #edf6ef; border-color: #b9d4c5; }
+.scenario-series i { width: 10px; height: 10px; border-radius: 3px; }
+.scenario-series > span { font-size: 13px; }
+@container (max-width: 460px) {
+  .is-dense .viz-value-label, .is-dense .viz-line-labels { display: none; }
+  .is-dense .viz-actions > button[aria-label="显示数值标签"] { display: none; }
+}
+@media (max-width: 600px) {
+  .main-chart-card .card-heading, .small-chart-grid .card-heading { padding: 18px 16px 10px; flex-wrap: wrap; }
+  .main-chart-card .chart-controls { padding-left: 16px; padding-right: 16px; }
+  .main-chart-card .card-heading h3, .small-chart-grid .card-heading h3 { font-size: 16px; }
+  .viz-toolbar { margin: 0 14px 9px; gap: 8px; }
+  .viz-scope > span { display: none; }
+  .viz-actions { gap: 2px; }
+  .viz-actions button { padding: 6px 7px; }
+  .viz-actions > button > span { display: none; }
+  .viz-plot { height: 285px; }
+  .viz-compact .viz-plot { height: 255px; }
+  .viz-canvas { padding-right: 8px; padding-left: 0; }
+  .viz-donut, .viz-compact.viz-donut { display: grid; grid-template-columns: 1fr; padding: 0 15px 12px; }
+  .viz-donut .viz-plot, .viz-compact.viz-donut .viz-plot { height: 235px; }
+  .viz-legend { max-height: 260px; display: grid; grid-template-columns: 1fr; gap: 2px; }
+  .viz-legend > button { padding: 9px 10px; }
+  .viz-legend > p { margin: 0; }
+  .viz-legend > button > span, .viz-legend strong { font-size: 14px; }
+  .viz-data { padding: 0 14px 14px; }
+  .viz-data th, .viz-data td { padding: 10px; font-size: 13px; }
+  .viz-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); border-radius: 14px; }
+  .viz-focus { padding: 19px 15px; }
+  .viz-focus h2 { font-size: 20px; }
+  .viz-focus .viz-donut { grid-template-columns: 1fr; }
+  .viz-focus .viz-donut .viz-plot { height: 260px; }
+  .viz-focus .viz-plot { height: 320px; }
+  .viz-selection, .viz-range { margin: 0 14px 12px; flex-wrap: wrap; }
+}

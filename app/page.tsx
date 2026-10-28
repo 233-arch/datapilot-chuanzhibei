@@ -64,21 +64,7 @@ import {
   FlaskConical,
   FileSearch,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell as PieCell,
-  Brush,
-} from "recharts";
+import { DataChart } from "@/components/exploration/data-chart";
 import {
   type Dataset,
   type Profile,
@@ -254,14 +240,6 @@ type Dialog =
   | "delivery"
   | "report-preview"
   | null;
-const colors = [
-  "#118a74",
-  "#6cba9d",
-  "#b2d5a1",
-  "#d6b778",
-  "#8c9fba",
-  "#b2a0c7",
-];
 const initialDataset = makeDemo();
 function barePlan(plan: Plan): Plan {
   return { ...plan, filter: undefined, filters: undefined };
@@ -288,229 +266,6 @@ function Brand({ small = false }: { small?: boolean }) {
       <span />
       <i />
     </span>
-  );
-}
-function DataChart({
-  plan,
-  result,
-  small = false,
-  onPointClick,
-  onRange,
-}: {
-  plan: Plan;
-  result: AnalysisResult;
-  small?: boolean;
-  onPointClick?: (name: string) => void;
-  onRange?: (start: string, end: string) => void;
-}) {
-  const [range, setRange] = useState<{
-    startIndex?: number;
-    endIndex?: number;
-  } | null>(null);
-  useEffect(() => setRange(null), [result, plan]);
-  if (!result.points.length)
-    return (
-      <div className="chart-empty">
-        <Search size={28} />
-        <p>没有符合条件的数据</p>
-        <span>试试调整筛选或分析指标</span>
-      </div>
-    );
-  if (plan.chart === "pie" && result.points.some((point) => point.value < 0))
-    return (
-      <div className="chart-empty">
-        <BarChart3 size={28} />
-        <p>当前指标含负值，不适合用饼图表达占比</p>
-        <span>请切换柱状图或折线图查看完整结果</span>
-      </div>
-    );
-  if (plan.chart === "pie" && result.points.every((point) => point.value === 0))
-    return (
-      <div className="chart-empty">
-        <BarChart3 size={28} />
-        <p>当前聚合值均为 0，暂无可显示的占比</p>
-        <span>可切换柱状图查看各组数据</span>
-      </div>
-    );
-  const props = {
-    data: result.points,
-    margin: { top: 15, right: 12, bottom: 5, left: 0 },
-  };
-  const label = plan.aggregate === "count" ? "记录数" : plan.metric;
-  const tooltip = (
-    <Tooltip
-      contentStyle={{
-        border: "1px solid #e5eae6",
-        borderRadius: 10,
-        fontSize: 13,
-        boxShadow: "0 6px 24px #173e2912",
-      }}
-      formatter={(v) => [`${formatNumber(Number(v))}${result.unit}`, label]}
-      labelStyle={{ color: "#68766d", marginBottom: 6 }}
-      cursor={{ fill: "#f1f6f3", stroke: "#c7d9cf" }}
-    />
-  );
-  return (
-    <div
-      className={`chart-wrap ${small ? "small-chart" : ""}`}
-      role="group"
-      aria-label={`${plan.title}。${result.summary}`}
-    >
-      <ResponsiveContainer
-        width="100%"
-        height="100%"
-        minWidth={0}
-        minHeight={160}
-        initialDimension={{ width: 320, height: small ? 180 : 226 }}
-      >
-        {plan.chart === "pie" ? (
-          <PieChart>
-            <Pie
-              data={result.points}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={small ? 48 : 62}
-              outerRadius={small ? 72 : 92}
-              paddingAngle={3}
-              stroke="none"
-              onClick={(_point, index) => {
-                const point = result.points[index];
-                if (point) onPointClick?.(point.name);
-              }}
-            >
-              {result.points.map((_, i) => (
-                <PieCell key={i} fill={colors[i % colors.length]} />
-              ))}
-            </Pie>
-            {tooltip}
-          </PieChart>
-        ) : plan.chart === "line" ? (
-          <AreaChart {...props}>
-            <defs>
-              <linearGradient
-                id={small ? "areaSmall" : "areaMain"}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor="#109177" stopOpacity={0.19} />
-                <stop offset="95%" stopColor="#109177" stopOpacity={0.015} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 5"
-              vertical={false}
-              stroke="#e9eeea"
-            />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tickMargin={12}
-              tick={{ fontSize: 13, fill: "#929b94" }}
-              tickFormatter={(s) =>
-                /^\d{4}-\d{2}$/.test(s)
-                  ? `${Number(s.slice(5))}月`
-                  : String(s).slice(0, 12)
-              }
-            />
-            <YAxis
-              width={52}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 13, fill: "#929b94" }}
-              tickFormatter={(n) =>
-                Math.abs(n) >= 10000
-                  ? `${Math.round(n / 10000)}万`
-                  : formatNumber(n, true)
-              }
-            />
-            {tooltip}
-            {onRange && (
-              <Brush
-                dataKey="name"
-                height={24}
-                stroke="#8bbba4"
-                travellerWidth={10}
-                onChange={(value) => setRange(value)}
-                tickFormatter={(v) => String(v).slice(0, 10)}
-              />
-            )}
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="#0e8d75"
-              strokeWidth={2.7}
-              fill={`url(#${small ? "areaSmall" : "areaMain"})`}
-              activeDot={{ r: 5, stroke: "#fff", strokeWidth: 3 }}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        ) : (
-          <BarChart {...props}>
-            <CartesianGrid
-              strokeDasharray="3 5"
-              vertical={false}
-              stroke="#e9eeea"
-            />
-            <XAxis
-              dataKey="name"
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-              tick={{ fontSize: 13, fill: "#87928a" }}
-              interval={0}
-              tickFormatter={(s) => String(s).slice(0, 7)}
-            />
-            <YAxis
-              width={48}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 13, fill: "#929b94" }}
-              tickFormatter={(n) => formatNumber(n, true)}
-            />
-            {tooltip}
-            <Bar
-              dataKey="value"
-              maxBarSize={small ? 30 : 50}
-              radius={[4, 4, 0, 0]}
-              fill="#118a74"
-              isAnimationActive={false}
-              onClick={(_point, index) => {
-                const point = result.points[index];
-                if (point) onPointClick?.(point.name);
-              }}
-            >
-              {result.points.map((_, i) => (
-                <PieCell
-                  key={i}
-                  fill={i === 0 ? "#118a74" : i % 2 ? "#85bfa8" : "#add2bd"}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        )}
-      </ResponsiveContainer>
-      {onRange && plan.chart === "line" && range && (
-        <div className="range-apply">
-          <button
-            className="button subtle"
-            onClick={() => {
-              const a = result.points[range.startIndex ?? 0]?.name,
-                b =
-                  result.points[range.endIndex ?? result.points.length - 1]
-                    ?.name;
-              if (a && b) onRange(a, b);
-            }}
-          >
-            应用选中的时间范围
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
 function Modal({
@@ -1299,6 +1054,7 @@ export default function Home() {
   function updateChartControls(patch: Partial<Plan>) {
     setActivePlan((previous) => {
       const next = { ...previous, ...patch };
+      if (next.chart === "pie" && !["sum", "count"].includes(next.aggregate)) next.chart = "bar";
       const labels = { count: "记录数", sum: "合计", mean: "均值", max: "最大值", min: "最小值" };
       const metric = next.aggregate === "count" ? "记录数" : `${next.metric}${labels[next.aggregate]}`;
       const view = next.chart === "pie" ? "构成" : next.chart === "bar" ? "对比" : "趋势";
@@ -1920,7 +1676,7 @@ export default function Home() {
                             <Bookmark size={16} />
                           </button>
                           <div className="segmented" aria-label="图表类型">
-                            {(["line", "bar", "pie"] as const).map((c) => (
+                            {(["line", "bar", "pie"] as const).filter(c => c !== "pie" || ["sum", "count"].includes(activePlan.aggregate)).map((c) => (
                               <button
                                 key={c}
                                 className={
@@ -2173,7 +1929,7 @@ export default function Home() {
                         <div className="chart-footer">
                           <span className="legend-dot" />{" "}
                           {secondaryPlan.metric || "记录数"}{" "}
-                          <span className="push-right">点击右上角展开</span>
+                          <span className="push-right">右上角可切换主图</span>
                         </div>
                       </section>
                       <section className="chart-card">
@@ -2195,29 +1951,12 @@ export default function Home() {
                             <ArrowUpRight size={16} />
                           </button>
                         </div>
-                        <div className="donut-layout">
-                          <DataChart
-                            plan={categoryPlan}
-                            result={category}
-                            small
-                            onPointClick={(name) =>
-                              inspectGroup(categoryPlan, name)
-                            }
-                          />
-                          <div className="donut-legend">
-                            {category.points.slice(0, 5).map((p, i) => (
-                              <div key={p.name}>
-                                <span
-                                  style={{
-                                    background: colors[i % colors.length],
-                                  }}
-                                />
-                                <span>{p.name}</span>
-                                <strong>{formatNumber(p.value, true)}</strong>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                        <DataChart
+                          plan={categoryPlan}
+                          result={category}
+                          small
+                          onPointClick={(name) => inspectGroup(categoryPlan, name)}
+                        />
                         <div className="chart-footer">
                           显示实际聚合结果
                           <span className="push-right">

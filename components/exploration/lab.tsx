@@ -326,6 +326,7 @@ function ScenarioStudio({
     [percent, setPercent] = useState(10),
     [dimension, setDimension] = useState(dimensions[0]?.name || ""),
     [target, setTarget] = useState("");
+  const [highlight, setHighlight] = useState<"baseline" | "simulated" | null>(null);
   useEffect(() => {
     if (!metrics.some((f) => f.name === metric))
       setMetric(metrics[0]?.name || "");
@@ -506,7 +507,7 @@ function ScenarioStudio({
       </div>
       <div
         className="scenario-chart"
-        role="img"
+        role="group"
         aria-label="基线与模拟值对比图"
       >
         <ResponsiveContainer
@@ -526,31 +527,30 @@ function ScenarioStudio({
             />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 13, fill: "#829176" }}
+              tick={{ fontSize: 13, fill: "#5e7769" }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               tickFormatter={(v) => formatNumber(v, true)}
-              tick={{ fontSize: 13, fill: "#829176" }}
+              tick={{ fontSize: 13, fill: "#5e7769" }}
               axisLine={false}
               tickLine={false}
               width={52}
             />
-            <Tooltip
-              formatter={(v) => formatNumber(Number(v))}
-              contentStyle={{
-                fontSize: 13,
-                borderRadius: 7,
-                borderColor: "#e1eadb",
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: 13 }} />
+            <Tooltip isAnimationActive={false} cursor={{ fill: "#edf5f0" }} content={({ active, payload }) => {
+              const point = payload?.[0]?.payload as { name: string; baseline: number; simulated: number } | undefined;
+              if (!active || !point) return null;
+              const delta = point.simulated - point.baseline;
+              return <div className="viz-tooltip"><div><strong>{point.name}</strong></div><span>{metric} · 条件模拟</span><p>基线 <strong>{formatNumber(point.baseline)}</strong></p><p>模拟 <strong>{formatNumber(point.simulated)}</strong></p><p>差额 <strong>{delta > 0 ? "+" : ""}{formatNumber(delta)}</strong></p><em>保持其他条件不变，不代表预测</em></div>;
+            }} />
+            <Legend height={44} content={() => <div className="scenario-series" aria-label="模拟图例联动">{(["baseline", "simulated"] as const).map(key => <button key={key} aria-pressed={highlight === key} onClick={() => setHighlight(highlight === key ? null : key)}><i style={{ background: key === "baseline" ? "#afc8bc" : "#16866c" }} />{key === "baseline" ? "基线" : "模拟值"}</button>)}<span>点击突出，再次点击恢复</span></div>} />
             <Bar
               dataKey="baseline"
               name="基线"
-              fill="#c8d7bb"
-              radius={[3, 3, 0, 0]}
+              fill="#afc8bc"
+              fillOpacity={highlight && highlight !== "baseline" ? .22 : 1}
+              radius={[6, 6, 2, 2]}
               maxBarSize={32}
               isAnimationActive={false}
             />
@@ -558,7 +558,8 @@ function ScenarioStudio({
               dataKey="simulated"
               name="模拟值"
               fill="#16866c"
-              radius={[3, 3, 0, 0]}
+              fillOpacity={highlight && highlight !== "simulated" ? .22 : 1}
+              radius={[6, 6, 2, 2]}
               maxBarSize={32}
               isAnimationActive={false}
             />

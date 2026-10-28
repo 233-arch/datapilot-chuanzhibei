@@ -1,6 +1,6 @@
 {
   "name": "datapilot",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,7 +12,7 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs && node scripts/test-workspace-kit.mjs && node scripts/test-copilot.mjs && node scripts/test-diagnostics.mjs && node scripts/test-intelligence.mjs && node scripts/test-visitor-api.mjs && node scripts/test-workspace-regressions.mjs && node scripts/test-local-assistant.mjs",
+    "test": "node scripts/test-core.mjs && node scripts/test-exploration.mjs && node scripts/test-workspace-kit.mjs && node scripts/test-copilot.mjs && node scripts/test-diagnostics.mjs && node scripts/test-intelligence.mjs && node scripts/test-visitor-api.mjs && node scripts/test-workspace-regressions.mjs && node scripts/test-local-assistant.mjs && node scripts/test-chart-presentation.mjs",
     "typecheck": "tsc --noEmit",
     "test:http": "node scripts/test-http.mjs",
     "test:exploration": "node scripts/test-exploration.mjs",
