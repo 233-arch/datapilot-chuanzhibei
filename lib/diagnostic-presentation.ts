@@ -1,31 +1,6 @@
-import { collapseWaterfall, type PeriodComparison } from "./diagnostics";
-
+import type { PeriodComparison } from "./diagnostics";
+import { formatNumber } from "./data-engine";
 export type DiagnosticGroup = PeriodComparison["groups"][number];
-export type WaterfallStep = {
-  id: string;
-  name: string;
-  from: number;
-  to: number;
-  value: number;
-  kind: "previous" | "current" | "group" | "remainder";
-  group?: DiagnosticGroup;
-  combined?: number;
-};
-
-export function waterfallSteps(result: PeriodComparison): WaterfallStep[] {
-  let cursor = result.previous;
-  const steps: WaterfallStep[] = [{ id: "previous", name: "基期", from: 0, to: cursor, value: cursor, kind: "previous" }];
-  collapseWaterfall(result.groups).forEach((group, index) => {
-    const combined = result.groups.length > 8 && index === 7;
-    const from = cursor;
-    cursor += group.delta;
-    steps.push({ id: combined ? "remainder" : `group:${group.name}`, name: group.name, from, to: cursor, value: group.delta,
-      kind: combined ? "remainder" : "group", group: combined ? undefined : group,
-      combined: combined ? result.groups.length - 7 : undefined });
-  });
-  steps.push({ id: "current", name: "本期", from: 0, to: result.current, value: result.current, kind: "current" });
-  return steps;
-}
 
 /** Always include zero and give constant/negative-only data a finite plot domain. */
 export function diagnosticDomain(values: number[]): [number, number] {
@@ -42,12 +17,6 @@ function niceStep(value: number) {
   return ([1, 2, 2.5, 5, 10].find(n => n >= normalized) || 10) * magnitude;
 }
 
-export function diagnosticTicks([lo, hi]: [number, number]) {
-  const step = niceStep((hi - lo) / 5), first = Math.ceil(lo / step) * step;
-  const count = Math.floor((hi - first) / step + 1e-8) + 1;
-  return Array.from({length:Math.max(0, Math.min(8, count))}, (_, i) => Number((first + i * step).toPrecision(12)));
-}
-
 export function orderedDiagnosticGroups(groups: DiagnosticGroup[], direction: "all" | "increase" | "decrease") {
   return groups.filter(g => direction === "all" || (direction === "increase" ? g.delta > 0 : g.delta < 0))
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.name.localeCompare(b.name, "zh-CN"));
@@ -55,4 +24,17 @@ export function orderedDiagnosticGroups(groups: DiagnosticGroup[], direction: "a
 
 export function contributionBalance(groups: DiagnosticGroup[]) {
   return groups.reduce((sum, g) => ({ increase: sum.increase + Math.max(0, g.delta), decrease: sum.decrease + Math.min(0, g.delta) }), { increase: 0, decrease: 0 });
+}
+
+/** Both periods share a zero origin and scale, including signed values. */
+export function barGeometry(value: number, [lo, hi]: [number, number]) {
+  const span = hi - lo;
+  const position = (v: number) => Math.max(0, Math.min(100, (v - lo) / span * 100));
+  const zero = position(0), end = position(value);
+  return { zero, left: Math.min(zero, end), width: Math.abs(end - zero) };
+}
+
+export function changeText(delta: number, unit = "") {
+  if (!Number.isFinite(delta)) return "数值超出展示范围";
+  return delta === 0 ? "没有变化" : `${delta > 0 ? "增加" : "减少"} ${formatNumber(Math.abs(delta))}${unit}`;
 }

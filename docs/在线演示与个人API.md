@@ -1,6 +1,6 @@
 # 在线演示与个人 API
 
-DataPilot v0.6.7，2026-10-29。队伍：疯狂星期四。
+DataPilot v0.6.8，2026-10-29。队伍：疯狂星期四。
 
 演示地址：https://datapilot-chuanzhibei.silky-bear-7395.chatgpt.site/
 

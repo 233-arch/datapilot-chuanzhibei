@@ -65,29 +65,26 @@ test("category colors remain stable across sorting and chart copies", () => {
 });
 const v = await import(pathToFileURL(path.join(out, "diagnostic-presentation.mjs")));
 const group = (name, previous, current) => ({name, previous, current, delta:current-previous});
-test("waterfall keeps cumulative totals exact across positive and negative crossings", () => {
-  const result = {previous:100, current:20, groups:[group("甲",80,-40), group("乙",20,60)]};
-  const steps = v.waterfallSteps(result);
-  assert.deepEqual(steps.map(s=>[s.from,s.to]),[[0,100],[100,-20],[-20,20],[0,20]]);
-  assert.equal(steps.slice(1,-1).reduce((s,p)=>s+p.value,100),20);
-  assert.equal(steps[0].kind,"previous"); assert.equal(steps.at(-1).kind,"current");
+test("paired bars compare equal values on the same scale including negative and zero", () => {
+  assert.deepEqual(v.barGeometry(50,[0,100]),{zero:0,left:0,width:50});
+  assert.deepEqual(v.barGeometry(-50,[-100,100]),{zero:50,left:25,width:25});
+  assert.deepEqual(v.barGeometry(50,[-100,100]),{zero:50,left:50,width:25});
+  assert.deepEqual(v.barGeometry(0,[-100,100]),{zero:50,left:50,width:0});
+  const shared=v.diagnosticDomain([3553,1935,1000]);
+  assert.equal(v.barGeometry(1935,shared).width/v.barGeometry(3553,shared).width,1935/3553);
 });
-test("collapsed diagnostic groups cannot masquerade as a real source with the same name", () => {
-  const groups = [group("其余 3 组",10,50), ...Array.from({length:9},(_,i)=>group(String(i),10,10+i))];
-  const result = {previous:100,current:groups.reduce((s,g)=>s+g.current,0),groups};
-  const steps = v.waterfallSteps(result), merged=steps.find(s=>s.kind==="remainder");
-  assert.equal(merged.combined,3); assert.equal(merged.group,undefined);
-  assert.equal(steps.find(s=>s.id==="group:其余 3 组").group.name,"其余 3 组");
-  assert.equal(new Set(steps.map(s=>s.id)).size,steps.length);
-  assert.equal(steps.at(-2).to,result.current);
+test("plain change labels state direction and exact magnitude without net-change percentages", () => {
+  assert.equal(v.changeText(-1618),"减少 1,618");
+  assert.equal(v.changeText(12117,"元"),"增加 12,117元");
+  assert.equal(v.changeText(0),"没有变化");
+  assert.equal(v.changeText(Infinity),"数值超出展示范围");
 });
 test("diagnostic plot domains keep zero and all finite signed values visible", () => {
   for (const values of [[-500,-20],[-5,0,20],[0,0],[],[NaN,Infinity,12]]) {
     const [lo,hi] = v.diagnosticDomain(values);
     assert.ok(Number.isFinite(lo)&&Number.isFinite(hi)&&hi>lo&&lo<=0&&hi>=0);
     for(const value of values.filter(Number.isFinite)) assert.ok(value>=lo&&value<=hi);
-    const ticks=v.diagnosticTicks([lo,hi]);
-    assert.ok(ticks.includes(0)); assert.ok(ticks.every(t=>Number.isFinite(t)&&t>=lo&&t<=hi));
+    const zero=v.barGeometry(0,[lo,hi]); assert.ok(zero.zero>=0&&zero.zero<=100); assert.equal(zero.width,0);
   }
 });
 test("diagnostic ranking filters by sign without changing the full calculation", () => {
