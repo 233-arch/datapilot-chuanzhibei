@@ -112,6 +112,7 @@ import {
 import { EvidenceGuide } from "@/components/exploration/evidence-guide";
 import { VisitorApiSettings } from "@/components/exploration/visitor-api";
 import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
+import { qualityStatus, starterQuestions } from "@/lib/workspace-presentation";
 import { backgroundTask } from "@/lib/background";
 import { campusScenario } from "@/lib/scenarios";
 import {
@@ -691,7 +692,8 @@ export default function Home() {
     () => explorationTasks(dataset, profile, scopedPlan),
     [dataset, profile, scopedPlan],
   );
-  const qualityIssues = profile.fields.filter((f) => f.missing || f.invalid).length + (profile.duplicates > 0 ? 1 : 0);
+  const quality = qualityStatus(profile);
+  const qualityIssues = quality.issues;
   const dimensions = profile.fields.filter((f) => f.type !== "number");
   const metrics = profile.fields.filter((f) => f.type === "number");
   const secondaryPlan = useMemo(() => {
@@ -786,22 +788,7 @@ export default function Home() {
     metrics[0];
   const profitMetric =
     metrics.find((f) => /利润|profit/i.test(f.name)) || metrics[1];
-  const starters = useMemo(() => {
-    const date = profile.fields.find((f) => f.type === "date");
-    const m = metrics[0]?.name;
-    const dims = dimensions.filter((f) => f.type === "text" && f.unique < 30);
-    return [
-      date
-        ? `按月查看${m || "记录数"}趋势`
-        : `按${dims[0]?.name || profile.fields[0].name}统计记录数`,
-      dims[0]
-        ? `哪个${dims[0].name}的${m || "记录数"}最高？`
-        : "统计每个分组的记录数",
-      dims[1]
-        ? `分析${dims[1].name}的${m || "记录数"}占比`
-        : `按${dims[0]?.name || profile.fields[0].name}统计记录数`,
-    ];
-  }, [profile]);
+  const starters = useMemo(() => starterQuestions(profile), [profile]);
   useEffect(() => {
     let alive = true;
     readWorkspace<{
@@ -2350,7 +2337,7 @@ export default function Home() {
                         }
                       >
                         <Download size={14} />
-                        导出 CSV
+                        导出全量 CSV
                       </button>
                     </div>
                     <div className="table-toolbar">
@@ -2455,21 +2442,19 @@ export default function Home() {
                       <div className="quality-score">
                         <ShieldCheck size={29} />
                         <strong>{profile.quality.toFixed(1)}</strong>
-                        <span>数据质量评分 / 100</span>
+                        <span>完整与去重评分 / 100</span>
                       </div>
                       <div className="quality-overview">
                         <h3>
-                          {profile.missing || profile.duplicates
-                            ? "发现可以改善的数据质量问题"
-                            : "数据状态良好，可以开始探索"}
+                          {quality.title}
                         </h3>
                         <p>
                           完整率 {profile.completeness.toFixed(2)}%，
                           {profile.missing} 个缺失单元格，{profile.duplicates}{" "}
-                          条完全重复记录。
+                          条完全重复记录，{quality.invalid} 个无效值。
                         </p>
                         <p className="quality-formula">
-                          评分 = 完整率 − 20 × 重复记录占比
+                          评分 = 完整率 − 20 × 重复记录占比。此辅助分不计入无效值；数值计算会排除无效值，请同时核对下方字段检查。
                         </p>
                         <div className="quality-actions">
                           <button
@@ -3429,7 +3414,7 @@ export default function Home() {
                 download(dataset.name, toCSV(dataset), "text/csv;charset=utf-8")
               }
             >
-              导出当前 CSV
+              导出全量 CSV
             </button>
           </div>
         </Modal>

@@ -1681,22 +1681,22 @@ h1 {
 }
 .quality-score span {
   font-size: 13px;
-  color: #a1b18c;
+  color: #62735a;
 }
 .quality-overview h3 {
-  font-size: 14px;
-  font-weight: 500;
-  color: #718960;
+  font-size: 18px;
+  font-weight: 600;
+  color: #294438;
 }
 .quality-overview p {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.9;
-  color: #9ba98e;
+  color: #5d6e62;
   margin-top: 7px;
 }
 .quality-overview p.quality-formula {
   font-size: 13px;
-  color: #acb99e;
+  color: #66776a;
 }
 .quality-actions {
   display: flex;
@@ -2315,7 +2315,7 @@ h1 {
     font-size: 34px;
   }
   .quality-overview h3 {
-    font-size: 14px;
+    font-size: 16px;
   }
   .workspace-footer > span:last-child {
     display: none;

@@ -13,6 +13,7 @@ from pypdf import PdfReader
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
+DOCUMENT_DATE = re.search(r'版本 v[\d.]+ · (\d{4}-\d{2}-\d{2})', (ROOT / 'docs/技术文档.md').read_text(encoding='utf-8')).group(1)
 OUT = ROOT / 'output' / 'pdf'
 OUT.mkdir(parents=True, exist_ok=True)
 pdfmetrics.registerFont(TTFont('CN', 'C:/Windows/Fonts/simsun.ttc', subfontIndex=0))
@@ -41,7 +42,7 @@ def chrome(canvas,doc):
     canvas.setStrokeColor(LINE);canvas.line(48,height-39,width-48,height-39)
     canvas.setFont('CN',8);canvas.setFillColor(GRAY)
     canvas.drawString(48,height-28,'数问 DataPilot / 参赛作品技术说明')
-    canvas.drawRightString(width-48,height-28,f'v{VERSION}  |  2026-10-26')
+    canvas.drawRightString(width-48,height-28,f'v{VERSION}  |  {DOCUMENT_DATE}')
     canvas.line(48,41,width-48,41)
     canvas.drawString(48,27,'可核验的数据探索 · 演示模式与真实模型模式明确区分')
     canvas.drawRightString(width-48,27,str(doc.page))

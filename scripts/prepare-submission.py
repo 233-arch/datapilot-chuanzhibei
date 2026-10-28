@@ -26,7 +26,7 @@ files = {
     bundle: "source/DataPilot-history.bundle",
     ROOT / "output/pdf/数问DataPilot_技术说明.pdf": "documents/技术说明.pdf",
 }
-for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "演示脚本.md", "v0.5验收.md", "v0.6验收.md", "v0.6.2验收.md", "在线演示与个人API.md", "用户试用任务.md"]:
+for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.5验收.md", "v0.6验收.md", "v0.6.2验收.md", "v0.6.3验收.md", "在线演示与个人API.md", "用户试用任务.md"]:
     files[ROOT / "docs" / name] = "documents/" + name
 for name in ["提交检查结果.md", "submission-audit.json", "public-demo-verification.json", "visitor-api-http.json", "model-evaluation.json", "intelligence-evaluation.json", "intelligence-http.json", "hosted-intelligence-verification.json", "hosted-model-verification.json", "model-secret-scan.json", "performance-evaluation.json", "explanation-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
     candidate = OUT / name
@@ -61,11 +61,11 @@ selected = {
     bundle: "02_源码与历史/DataPilot-history.bundle",
     ROOT / "docs/技术文档.md": "04_参考资料/技术文档_可编辑.md",
 }
-for name in ["第三方依赖.md", "开源与原创说明.md", "录制讲解稿.md", "演示脚本.md", "v0.6.2验收.md"]:
+for name in ["第三方依赖.md", "开源与原创说明.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.6.2验收.md", "v0.6.3验收.md"]:
     selected[ROOT / "docs" / name] = "04_参考资料/" + name
-for name in ["v6-2-readable-desktop.png", "v6-2-readable-mobile.png"]:
+for name in ["v6-2-readable-desktop.png", "v6-2-readable-mobile.png", "v6-3-quality-fixed.png", "v6-3-api-failure-fixed.png", "v6-3-quality-mobile.png"]:
     selected[ROOT / "docs/screenshots" / name] = "04_参考资料/screenshots/" + name
-for name in ["innovation.csv", "validation.csv", "period-comparison.xlsx"]:
+for name in ["innovation.csv", "validation.csv", "period-comparison.xlsx", "业务口径说明.md"]:
     selected[ROOT / "docs/samples" / name] = "04_参考资料/演示样本/" + name
 for name in ["提交检查结果.md", "submission-audit.json", "model-evaluation.json", "intelligence-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
     if (OUT / name).exists():
@@ -77,6 +77,7 @@ for src, dest in selected.items():
 
 team = json.loads((ROOT / "submission/team.json").read_text(encoding="utf-8"))
 review = json.loads((ROOT / "submission/review.json").read_text(encoding="utf-8"))
+pdf_review = json.loads((OUT / "pdf-review.json").read_text(encoding="utf-8"))
 def field(value):
     return value.strip() if isinstance(value, str) and value.strip() else "待补充"
 
@@ -104,7 +105,7 @@ AI方案与创新摘要：
 3. 来源联动、异常核查、条件模拟、洞察比较和配置指纹支持课程探索与口径复现。
 4. API由访客自行配置，密钥仅在本页内存中使用，不提供部署者共享密钥。
 
-技术文档：选择01_技术文档目录中的PDF，10页。
+技术文档：选择01_技术文档目录中的PDF，{pdf_review['pages']}页。
 演示视频：由你另行准备。MP4，5-8分钟，不低于1080p，普通话讲解，覆盖项目介绍、核心功能和AI亮点。
 在线演示（可选）：{review.get('reviewDemoUrl', '')}
 访问说明：该托管地址存在部分网络Cloudflare 403反馈，不保证大陆可达。未配置API时可体验本机分析；真实AI需访客个人API与额度。可选链接不能替代源码、PDF和视频。

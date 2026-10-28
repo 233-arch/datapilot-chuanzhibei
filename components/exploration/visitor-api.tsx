@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { LoaderCircle, ShieldCheck, Trash2 } from "lucide-react";
-import { MODEL_PROVIDERS, validateVisitorModel, type VisitorModel } from "@/lib/visitor-credentials";
-import { openApiSettings, setVisitorModel, useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
+import { MODEL_PROVIDERS, type VisitorModel } from "@/lib/visitor-credentials";
+import { openApiSettings, setVisitorModel, useVisitorModel } from "@/lib/visitor-model";
+import { createVisitorConnection } from "@/lib/visitor-connection";
 
 export function ApiAccessNotice() {
   const config = useVisitorModel();
@@ -18,29 +19,17 @@ export function VisitorApiSettings() {
   const [key, setKey] = useState(current?.key || "");
   const [model, setModel] = useState(current?.model || MODEL_PROVIDERS.deepseek.defaultModel);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [ok, setOk] = useState(false);
-  const abort = useRef<AbortController | null>(null);
-  useEffect(() => () => abort.current?.abort(), []);
-  function invalidate() { abort.current?.abort(); setBusy(false); setMessage(""); setOk(false); }
+  const [connection] = useState(() => createVisitorConnection(setVisitorModel));
+  useEffect(() => () => connection.cancel(), [connection]);
+  function invalidate() { connection.cancel(); setBusy(false); setMessage(""); setOk(false); }
   async function connect() {
     invalidate();
-    let config: VisitorModel;
-    try { config = validateVisitorModel({ provider, key, model }); }
-    catch (e) { setMessage((e as Error).message); return; }
-    setVisitorModel(config);
-    const controller = new AbortController(); abort.current = controller; setBusy(true);
+    setBusy(true);
     setMessage("正在使用 2 行合成样本验证工具调用…");
-    try {
-      const r = await fetch("/api/model-health", {
-        method: "POST", headers: visitorModelHeaders(),
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(50000)]),
-      });
-      const result = await r.json() as { ok?: boolean; message?: string };
-      if (controller.signal.aborted) return;
-      setOk(r.ok && result.ok === true);
-      setMessage(result.message || "验证未通过，请检查密钥、模型和账户额度。");
-    } catch {
-      if (!controller.signal.aborted) setMessage("连接超时或服务暂不可用，请检查配置后重试。");
-    } finally { if (!controller.signal.aborted) setBusy(false); }
+    const result = await connection.connect({ provider, key, model });
+    if (!result) return;
+    setOk(result.ok); setBusy(false);
+    setMessage(result.ok ? result.message : `${result.message} 本次配置未应用。`);
   }
   return <div className="visitor-api-settings">
     <p>使用你自己的 API 账户，费用由对应服务商收取。密钥经本站 HTTPS 服务临时转发给所选服务商；本站不主动保存或记录密钥。</p>
@@ -53,9 +42,10 @@ export function VisitorApiSettings() {
     </div>
     <small>服务地址：{MODEL_PROVIDERS[provider].url}。仅支持上述官方服务，模型须支持 Chat Completions 工具调用。</small>
     <div className="visitor-api-actions">
-      <button className="button primary" disabled={busy || !key.trim() || !model.trim()} onClick={() => void connect()}>{busy ? <LoaderCircle size={14} className="spin" /> : <ShieldCheck size={14} />}应用并验证我的 API</button>
+      <button className="button primary" disabled={busy || !key.trim() || !model.trim()} onClick={() => void connect()}>{busy ? <LoaderCircle size={14} className="spin" /> : <ShieldCheck size={14} />}验证并应用我的 API</button>
       <button className="button subtle" disabled={!current && !key} onClick={() => { invalidate(); setVisitorModel(null); setKey(""); setMessage("已清除 API 配置，当前为本地演示模式。"); }}><Trash2 size={14} />清除 API 配置</button>
     </div>
+    <p className="diagnostic-note">当前生效：{current ? `${MODEL_PROVIDERS[current.provider].label} · ${current.model}（已验证）` : "本地演示模式"}。验证失败会保留原配置。</p>
     <p className="diagnostic-note">配置仅在当前页面内存中生效，刷新或关闭页面即清除，不随数据集、报告或配置导出。连接验证会消耗少量个人 API 额度；不发送当前数据表。</p>
     {message && <p role="status" className={ok ? "model-health-result" : "model-health-result failed"}>{message}</p>}
   </div>;
