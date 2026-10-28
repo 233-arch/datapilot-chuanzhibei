@@ -24,7 +24,7 @@ export function PlanReview({ question, plan, result, mode, onApply, onDiscard }:
   onApply: () => void; onDiscard: () => void;
 }) {
   return <section className="plan-review" aria-label="待确认分析计划">
-    <div className="plan-review-heading"><span><Sparkles size={15}/>先核对，再应用</span><small>{mode === "model" ? "模型规划" : mode === "navigator" ? "数据导航" : "演示规划"}</small></div>
+    <div className="plan-review-heading"><span><Sparkles size={15}/>先核对，再应用</span><small>{mode === "model" ? "模型规划" : mode === "navigator" ? "数据导航" : "本地规则"}</small></div>
     <p className="plan-question">{question}</p>
     <dl><div><dt>分组</dt><dd>{plan.groupBy}{plan.chart === "line" ? ` · 按${plan.timeGrain === "month" ? "月" : "日"}` : ""}</dd></div><div><dt>指标</dt><dd>{plan.aggregate === "count" ? "记录数" : `${plan.metric} · ${aggregateLabels[plan.aggregate]}`}</dd></div><div><dt>范围</dt><dd>{result.matchedRows.toLocaleString()} 条匹配 / {result.validRows.toLocaleString()} 条有效</dd></div></dl>
     {(plan.filters || []).length > 0 && <div className="plan-filter-list">{plan.filters!.map((f,i) => <span key={i}>{f.field} {({eq:"=",contains:"包含",gte:"≥",lte:"≤",missing:"为空",bucket:"时间分组",group:"分组"})[f.operator]} {f.value}</span>)}</div>}

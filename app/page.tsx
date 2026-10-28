@@ -114,6 +114,7 @@ import { EvidenceGuide } from "@/components/exploration/evidence-guide";
 import { VisitorApiSettings } from "@/components/exploration/visitor-api";
 import { useVisitorModel, visitorModelHeaders } from "@/lib/visitor-model";
 import { qualityStatus, starterQuestions } from "@/lib/workspace-presentation";
+import { localAssistant, type LocalReply, type LocalAction } from "@/lib/local-assistant";
 import { backgroundTask } from "@/lib/background";
 import { campusScenario } from "@/lib/scenarios";
 import {
@@ -630,6 +631,7 @@ export default function Home() {
   );
   const [previewFirst, setPreviewFirst] = useState(true);
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [localReply, setLocalReply] = useState<{ question: string; reply: LocalReply } | null>(null);
   const [journey, setJourney] = useState<JourneyState>({
     datasetId: initialDataset.id,
     steps: [],
@@ -897,7 +899,9 @@ export default function Home() {
     setBusy(false);
     setSteps([]);
     setProposal(null);
+    setLocalReply(null);
   }, [visitorModel]);
+  useEffect(() => { setLocalReply(null); }, [proposalBasis]);
   useEffect(() => {
     if (!ready) return;
     setSaved(false);
@@ -980,7 +984,7 @@ export default function Home() {
       behavior: proposal ? "auto" : "smooth",
       block: "nearest",
     });
-  }, [entries, busy, steps, proposal]);
+  }, [entries, busy, steps, proposal, localReply]);
   function setNewDataset(next: Dataset, prepared?: Profile) {
     setPreparedProfile(prepared ? { id: next.id, profile: prepared } : null);
     setClarification(null);
@@ -1101,6 +1105,28 @@ export default function Home() {
   async function ask(text = question) {
     const q = text.trim();
     if (!q || busy) return;
+    if (!visitorModel) {
+      requestGeneration.current++;
+      abort.current?.abort();
+      setError(""); setQuestion(""); setClarification(null); setProposal(null);
+      setAssistant(true); setMobileChat(true); setAssistantTab("chat");
+      setReplaying(false);
+      try {
+        const answer = localAssistant(q, dataset, profile, scopedPlan);
+        if (answer.kind === "reply") setLocalReply({ question: q, reply: answer });
+        else {
+          setLocalReply(null);
+          const next: Proposal = { question: q, plan: answer.plan,
+            result: executePlan(dataset, profile, answer.plan), mode: "demo", origin: "demo",
+            retrieved: answer.retrieved, basis: proposalBasis };
+          if (previewFirst) setProposal(next); else commitProposal(next);
+        }
+      } catch {
+        setLocalReply({ question: q, reply: { kind: "reply", title: "请核对当前数据与口径", lines: ["本地统计未能完成，请调整筛选或换一种明确的问法。"], action: "help" } });
+      }
+      return;
+    }
+    setLocalReply(null);
     if (!scopeDataset.rows.length) {
       setError("当前筛选没有记录，请先调整或重置联动筛选。");
       return;
@@ -1225,6 +1251,11 @@ export default function Home() {
         setSteps([]);
       }
     }
+  }
+  function openLocalAction(action: LocalAction) {
+    setMobileChat(false);
+    if (action === "delivery" || action === "help") setDialog(action);
+    else { setView("workspace"); setTab(action); }
   }
   function applyClean() {
     requestGeneration.current++;
@@ -2655,7 +2686,7 @@ export default function Home() {
                           <span className="eyebrow">
                             {entry.mode === "model"
                               ? "模型规划 · 本地计算"
-                              : "演示规划 · 本地计算"}
+                              : "本地规则 · 本地计算"}
                           </span>
                           <h3>{entry.question}</h3>
                           <p>{entry.result.summary}</p>
@@ -2748,7 +2779,7 @@ export default function Home() {
                     <span />{" "}
                     {mode === "model"
                       ? "个人 API · 配置仅本页生效"
-                      : "本地演示 · AI 需自备 API"}
+                      : "本地助手 · 无需 API"}
                   </small>
                   {!visitorModel && <button className="assistant-api-link" onClick={() => { setMobileChat(false); setDialog("settings"); }}>接入我的 API</button>}
                 </div>
@@ -2808,12 +2839,15 @@ export default function Home() {
                         <Brand />
                       </div>
                       <h2>从一个问题开始</h2>
-                      <p>选择下方问题，或输入你想核查的指标。</p>
+                      <p>{visitorModel ? "选择下方问题，或输入你想核查的指标。" : "可直接统计、筛选和检查数据；结果来自本机计算。"}</p>
                       <div className="intro-meta">
                         <span>{profile.columnCount} 个字段已就绪</span>
                         <span>可追溯的计算结果</span>
                       </div>
                     </div>
+                    {!visitorModel && <div className="local-assistant-shortcuts" aria-label="本地助手快捷功能">
+                      {["数据概览", "质量摘要", "查看字段", "怎么使用"].map(q => <button key={q} onClick={() => void ask(q)}>{q}</button>)}
+                    </div>}
                     <div className="comparison-nudge">
                       <button
                         onClick={() => {
@@ -2867,7 +2901,7 @@ export default function Home() {
                                 ? "数据导航"
                                 : entry.mode === "model"
                                   ? "模型规划"
-                                  : "演示规划"}
+                                  : "本地规则"}
                             </small>
                           </div>
                           <p>{entry.result.summary}</p>
@@ -2939,6 +2973,17 @@ export default function Home() {
                     ))}
                   </>
                 )}
+                {localReply && assistantTab === "chat" && <div className="chat-exchange local-assistant-reply" role="status">
+                  <div className="user-message">{localReply.question}</div>
+                  <div className="assistant-message">
+                    <div className="message-brand"><Brand small /><span>数问</span><small>本地计算 · 未调用模型</small></div>
+                    <strong>{localReply.reply.title}</strong>
+                    {localReply.reply.lines.map((line, index) => <p key={index}>{line}</p>)}
+                    {localReply.reply.action && <button className="button subtle" onClick={() => openLocalAction(localReply.reply.action!)}>
+                      {({ quality: "打开质量检查", preview: "查看原始数据", delivery: "打开报告中心", diagnostics: "打开本地周期对比", help: "查看使用帮助" })[localReply.reply.action]} <ArrowRight size={14} />
+                    </button>}
+                  </div>
+                </div>}
                 {clarification && (
                   <div className="clarification-card" role="status">
                     <strong>先确认分析口径</strong>
@@ -3029,7 +3074,7 @@ export default function Home() {
                   <textarea
                     ref={input}
                     aria-label="向数据提问"
-                    placeholder="向数据提问，比如：哪个地区销售额最高？"
+                    placeholder={visitorModel ? "向数据提问，比如：哪个地区销售额最高？" : "如：销售额合计、质量摘要、只看华南"}
                     value={question}
                     maxLength={2000}
                     disabled={busy}
@@ -3048,7 +3093,7 @@ export default function Home() {
                   <div className="composer-tools">
                     <span>
                       <Sparkles size={13} />
-                      {mode === "model" ? "智能分析" : "演示分析"}
+                      {mode === "model" ? "智能分析" : "本地分析"}
                     </span>
                     <button
                       className="send-button"
@@ -3066,7 +3111,7 @@ export default function Home() {
                 </div>
                 <p className="composer-note">
                   {mode === "demo"
-                    ? "演示模式支持字段、趋势、占比与均值等常见表达"
+                    ? "本地规则支持常用统计；复杂语义可接入个人 API"
                     : "模型提出计划，计算结果由本地数据验证"}
                 </p>
               </div>
@@ -3327,7 +3372,7 @@ export default function Home() {
               [
                 "02",
                 "用你的话提问",
-                "例如“按月查看销售额趋势”“各地区平均利润”“华东的产品类别销售额占比”。演示模式按字段名匹配常见意图；连接模型后支持更灵活的表达。",
+                "例如“数据概览”“质量摘要”“各地区利润合计”“改成均值”“只看华南”。本地助手按实际字段与固定规则计算；连接个人 API 后支持更灵活的表达。",
               ],
               [
                 "03",
@@ -3376,13 +3421,13 @@ export default function Home() {
               <span
                 className={`badge ${mode === "model" ? "green" : "neutral"}`}
               >
-                {mode === "model" ? "个人 API 已配置" : "本地演示"}
+                {mode === "model" ? "个人 API 已配置" : "本地助手"}
               </span>
             </h3>
             <p>
               {mode === "model"
                 ? `当前模型：${visitorModel?.model}。请求使用你本页填写的 API 配置。`
-                : "当前使用本地意图匹配。要使用真正的大模型规划、知识问答和证据解读，请自行接入 API。"}
+                : "本地助手可直接统计、筛选、检查质量和查看字段，无需API。生成式知识问答和复杂规划可另行接入个人API。"}
             </p>
             <VisitorApiSettings />
           </div>

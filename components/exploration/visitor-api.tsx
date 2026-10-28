@@ -8,7 +8,7 @@ import { createVisitorConnection } from "@/lib/visitor-connection";
 export function ApiAccessNotice() {
   const config = useVisitorModel();
   return !config ? <div className="visitor-api-notice">
-    <span>AI 功能需自行接入 API。图表、筛选和本机计算可直接体验。</span>
+    <span>基础分析与本地助手可直接使用。生成式问答和复杂规划需个人 API。</span>
     <button className="text-button" onClick={openApiSettings}>配置我的 API</button>
   </div> : null;
 }
@@ -43,9 +43,9 @@ export function VisitorApiSettings() {
     <small>服务地址：{MODEL_PROVIDERS[provider].url}。仅支持上述官方服务，模型须支持 Chat Completions 工具调用。</small>
     <div className="visitor-api-actions">
       <button className="button primary" disabled={busy || !key.trim() || !model.trim()} onClick={() => void connect()}>{busy ? <LoaderCircle size={14} className="spin" /> : <ShieldCheck size={14} />}验证并应用我的 API</button>
-      <button className="button subtle" disabled={!current && !key} onClick={() => { invalidate(); setVisitorModel(null); setKey(""); setMessage("已清除 API 配置，当前为本地演示模式。"); }}><Trash2 size={14} />清除 API 配置</button>
+      <button className="button subtle" disabled={!current && !key} onClick={() => { invalidate(); setVisitorModel(null); setKey(""); setMessage("已清除 API 配置，可继续使用本地助手。"); }}><Trash2 size={14} />清除 API 配置</button>
     </div>
-    <p className="diagnostic-note">当前生效：{current ? `${MODEL_PROVIDERS[current.provider].label} · ${current.model}（已验证）` : "本地演示模式"}。验证失败会保留原配置。</p>
+    <p className="diagnostic-note">当前生效：{current ? `${MODEL_PROVIDERS[current.provider].label} · ${current.model}（已验证）` : "本地助手（无需 API）"}。验证失败会保留原配置。</p>
     <p className="diagnostic-note">配置仅在当前页面内存中生效，刷新或关闭页面即清除，不随数据集、报告或配置导出。连接验证会消耗少量个人 API 额度；不发送当前数据表。</p>
     {message && <p role="status" className={ok ? "model-health-result" : "model-health-result failed"}>{message}</p>}
   </div>;

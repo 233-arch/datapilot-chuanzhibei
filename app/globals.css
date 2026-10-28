@@ -1253,6 +1253,11 @@ h1 {
   border-top: 1px solid #edf1e7;
   background: #fdfefb;
 }
+.local-assistant-shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+.local-assistant-shortcuts button { min-height: 38px; padding: 8px; border: 1px solid #dce8df; border-radius: 8px; background: #f4f9f5; color: #285d4a; font-size: 14px; }
+.local-assistant-shortcuts button:hover { background: #e6f2e9; border-color: #73a48e; }
+.local-assistant-reply .assistant-message p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.local-assistant-reply .assistant-message > strong { display: block; margin: 10px 0; color: #285d4a; font-size: 16px; }
 .composer {
   background: #fff;
   border: 1px solid #dfe8d6;
