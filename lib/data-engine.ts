@@ -65,7 +65,12 @@ export type AnalysisResult = {
   unit: string;
 };
 const badFields = new Set(["__proto__", "constructor", "prototype"]);
-export const LIMITS = { bytes: 5 * 1024 * 1024, rows: 20000, columns: 80 };
+export const LIMITS = { bytes: 25 * 1024 * 1024, rows: 20000, columns: 80 };
+export const FILE_SIZE_LABEL = `${LIMITS.bytes / (1024 * 1024)} MB`;
+export function validateImportFileSize(bytes: number) {
+  if (bytes > LIMITS.bytes)
+    throw new Error(`文件超过 ${FILE_SIZE_LABEL}，请拆分后重试。`);
+}
 export function numeric(value: Cell): number | null {
   if (
     value === null ||
@@ -107,8 +112,7 @@ export function dateBucket(v: string, grain: "day" | "month"): string {
     : v;
 }
 export function parseCSV(input: string, filename = "我的数据.csv"): Dataset {
-  if (new TextEncoder().encode(input).length > LIMITS.bytes)
-    throw new Error("文件超过 5 MB，请精简后重试。");
+  validateImportFileSize(new TextEncoder().encode(input).length);
   const text = input.replace(/^\uFEFF/, "");
   const first = text.split(/\r?\n/)[0] || "";
   const delimiter = ["\t", ";", ","]

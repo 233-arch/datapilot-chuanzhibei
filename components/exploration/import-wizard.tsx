@@ -5,7 +5,7 @@ import {
   type Dataset,
   type Profile,
   type FieldType,
-  LIMITS,
+  validateImportFileSize,
   parseCSV,
   profileDataset,
 } from "@/lib/data-engine";
@@ -69,8 +69,7 @@ export function ImportWizard({
     setBusy(true);
     setError("");
     (async () => {
-      if (file.size > LIMITS.bytes)
-        throw new Error("文件超过5 MB，请精简后重试。");
+      validateImportFileSize(file.size);
       if (/\.xlsx$/i.test(file.name)) {
         const result = await backgroundTask<Sheet[]>(
           "excel",

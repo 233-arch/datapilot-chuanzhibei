@@ -94,7 +94,8 @@ import {
   toCSV,
   cleanDataset,
   reportMarkdown,
-  LIMITS,
+  FILE_SIZE_LABEL,
+  validateImportFileSize,
   type FilterClause,
   mergeFilters,
   filtersForPlan,
@@ -1013,8 +1014,9 @@ export default function Home() {
   }
   async function uploadFile(file?: File) {
     if (!file) return;
-    if (file.size > LIMITS.bytes) {
-      setError("文件超过5 MB，请精简后重试。");
+    try { validateImportFileSize(file.size); }
+    catch (error) {
+      setError((error as Error).message);
       return;
     }
     if (!/\.(csv|tsv|xlsx)$/i.test(file.name)) {
@@ -2604,7 +2606,7 @@ export default function Home() {
                   <UploadCloud size={30} />
                   <h3>让下一份数据，也开口说话。</h3>
                   <p>
-                    拖入 CSV / TSV / XLSX，或点击选择文件。最多 5 MB、20,000
+                    拖入 CSV / TSV / XLSX，或点击选择文件。最多 {FILE_SIZE_LABEL}、20,000
                     行。
                   </p>
                   <button
@@ -3271,7 +3273,7 @@ export default function Home() {
             >
               选择本机文件 <ArrowRight size={14} />
             </button>
-            <small>最多 5 MB · 20,000 行 · 80 个字段</small>
+            <small>最多 {FILE_SIZE_LABEL} · 20,000 行 · 80 个字段</small>
           </div>
           {error && (
             <p className="error-message" role="alert">

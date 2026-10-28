@@ -60,6 +60,25 @@ await test("File, column and row limits are enforced", () => {
   );
   assert.throws(() => e.parseCSV("a\n" + Array(20001).fill("1").join("\n")));
 });
+await test("Files above the previous 5 MB cap retain all rows and exact totals", () => {
+  const csv = "地区,金额,备注\n" + Array.from({ length: 6000 }, (_, i) =>
+    `${i % 2 ? "华南" : "华东"},${i + 1},${"录屏合成数据".repeat(60)}`,
+  ).join("\n");
+  assert.ok(Buffer.byteLength(csv) > 5 * 1024 * 1024);
+  const data = e.parseCSV(csv), profile = e.profileDataset(data);
+  assert.equal(data.rows.length, 6000);
+  assert.equal(data.rows[5999].备注.length, "录屏合成数据".length * 60);
+  const result = e.executePlan(data, profile, {
+    ...e.defaultPlan(profile), groupBy: "地区", metric: "金额", aggregate: "sum",
+  });
+  assert.equal(result.validRows, 6000);
+  assert.equal(result.points.reduce((sum, point) => sum + point.value, 0), 18003000);
+});
+await test("25 MB boundary is inclusive and oversize rejection reports the active limit", () => {
+  assert.doesNotThrow(() => e.validateImportFileSize(25 * 1024 * 1024));
+  assert.throws(() => e.validateImportFileSize(25 * 1024 * 1024 + 1), /25 MB/);
+  assert.throws(() => e.parseCSV("备注\n" + "数".repeat(Math.ceil(e.LIMITS.bytes / 3))), /25 MB/);
+});
 await test("Empty values remain null and are not zero", () => {
   assert.equal(fixture.rows[3].销售额, null);
   assert.equal(e.numeric(null), null);
