@@ -7,6 +7,7 @@ import "./diagnostics.css";
 import "./intelligence.css";
 import "./readability.css";
 import "./charts.css";
+import "./diagnostic-charts.css";
 
 export const metadata: Metadata = {
   title: "数问 DataPilot · 让数据回答问题",

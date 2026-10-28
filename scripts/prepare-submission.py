@@ -26,7 +26,7 @@ files = {
     bundle: "source/DataPilot-history.bundle",
     ROOT / "output/pdf/数问DataPilot_技术说明.pdf": "documents/技术说明.pdf",
 }
-for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.5验收.md", "v0.6验收.md", "v0.6.2验收.md", "v0.6.3验收.md", "v0.6.4验收.md", "v0.6.5验收.md", "v0.6.6验收.md", "在线演示与个人API.md", "用户试用任务.md"]:
+for name in ["提交审查.md", "提交准备.md", "测试报告.md", "竞品调研.md", "开源与原创说明.md", "第三方依赖.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.5验收.md", "v0.6验收.md", "v0.6.2验收.md", "v0.6.3验收.md", "v0.6.4验收.md", "v0.6.5验收.md", "v0.6.6验收.md", "v0.6.7验收.md", "在线演示与个人API.md", "用户试用任务.md"]:
     files[ROOT / "docs" / name] = "documents/" + name
 for name in ["提交检查结果.md", "submission-audit.json", "public-demo-verification.json", "visitor-api-http.json", "import-size-verification.json", "model-evaluation.json", "intelligence-evaluation.json", "intelligence-http.json", "hosted-intelligence-verification.json", "hosted-model-verification.json", "model-secret-scan.json", "performance-evaluation.json", "explanation-evaluation.json", "pdf-review.json", "repository-access.json", "source-scan.json"]:
     candidate = OUT / name
@@ -61,9 +61,9 @@ selected = {
     bundle: "02_源码与历史/DataPilot-history.bundle",
     ROOT / "docs/技术文档.md": "04_参考资料/技术文档_可编辑.md",
 }
-for name in ["第三方依赖.md", "开源与原创说明.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.6.2验收.md", "v0.6.3验收.md", "v0.6.4验收.md", "v0.6.5验收.md", "v0.6.6验收.md"]:
+for name in ["第三方依赖.md", "开源与原创说明.md", "录制讲解稿.md", "录屏操作指南.md", "演示脚本.md", "v0.6.2验收.md", "v0.6.3验收.md", "v0.6.4验收.md", "v0.6.5验收.md", "v0.6.6验收.md", "v0.6.7验收.md"]:
     selected[ROOT / "docs" / name] = "04_参考资料/" + name
-for name in ["v6-2-readable-desktop.png", "v6-2-readable-mobile.png", "v6-3-quality-fixed.png", "v6-3-api-failure-fixed.png", "v6-3-quality-mobile.png", "v6-4-import-25mb.png", "v6-4-large-csv.png", "v6-4-large-xlsx.png", "v6-4-oversize-rejected.png", "v6-5-local-overview.png", "v6-5-local-followup.png", "v6-6-donut-focus.png", "v6-6-mobile-details.png", "v6-6-chart-focus.png"]:
+for name in ["v6-2-readable-desktop.png", "v6-2-readable-mobile.png", "v6-3-quality-fixed.png", "v6-3-api-failure-fixed.png", "v6-3-quality-mobile.png", "v6-4-import-25mb.png", "v6-4-large-csv.png", "v6-4-large-xlsx.png", "v6-4-oversize-rejected.png", "v6-5-local-overview.png", "v6-5-local-followup.png", "v6-6-donut-focus.png", "v6-6-mobile-details.png", "v6-6-chart-focus.png", "v6-7-diagnostic-waterfall.png", "v6-7-diagnostic-compare.png", "v6-7-diagnostic-mobile.png"]:
     selected[ROOT / "docs/screenshots" / name] = "04_参考资料/screenshots/" + name
 for name in ["innovation.csv", "validation.csv", "period-comparison.xlsx", "业务口径说明.md"]:
     selected[ROOT / "docs/samples" / name] = "04_参考资料/演示样本/" + name

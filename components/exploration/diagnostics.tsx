@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownToLine,
-  ArrowRight,
   CalendarDays,
   LoaderCircle,
   RotateCcw,
@@ -18,7 +17,6 @@ import {
 } from "@/lib/data-engine";
 import {
   periodDefaults,
-  collapseWaterfall,
   ratioMetric,
   type ComparisonInput,
   type PeriodComparison,
@@ -27,90 +25,8 @@ import {
 import { backgroundTask } from "@/lib/background";
 import { EvidenceGuide } from "./evidence-guide";
 import { MetricLibrary } from "./metric-library";
+import { DiagnosticCharts, DiagnosticSummary } from "./diagnostic-charts";
 import { type DiagnosticState, type SavedMetric } from "@/lib/workbench";
-function Waterfall({
-  result,
-  onGroup,
-}: {
-  result: PeriodComparison;
-  onGroup: (name: string) => void;
-}) {
-  let cursor = result.previous;
-  const bars: { name: string; from: number; to: number; total: boolean; source?: string }[] = [{ name: "基期", from: 0, to: cursor, total: true }];
-  for (const [index, group] of collapseWaterfall(result.groups).entries()) {
-    const from = cursor;
-    cursor += group.delta;
-    bars.push({ name: group.name, from, to: cursor, total: false, source: result.groups.length > 8 && index === 7 ? undefined : group.name });
-  }
-  bars.push({ name: "本期", from: 0, to: result.current, total: true });
-  const values = bars.flatMap((b) => [b.from, b.to]),
-    lo = Math.min(0, ...values),
-    hi = Math.max(1, ...values),
-    height = 190,
-    y = (v: number) => 25 + ((hi - v) / (hi - lo || 1)) * height,
-    w = 680 / bars.length;
-  return (
-    <div className="waterfall-wrap">
-      <svg
-        viewBox="0 0 740 275"
-        role="group"
-        aria-label="变化贡献瀑布图，基期加全部分组差额等于本期"
-      >
-        <line x1="32" x2="725" y1={y(0)} y2={y(0)} stroke="#cad8ce" />
-        {bars.map((b, i) => (
-          <g key={i} role={b.source ? "button" : undefined}
-            tabIndex={b.source ? 0 : undefined}
-            aria-label={`${b.name}：${formatNumber(b.total ? b.to : b.to - b.from)}${b.source ? "，查看来源" : ""}`}
-            onClick={() => { if (b.source) onGroup(b.source); }}
-            onKeyDown={e => { if (b.source && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onGroup(b.source); } }}>
-            <title>{b.name}：{formatNumber(b.total ? b.to : b.to - b.from)}；累计从 {formatNumber(b.from)} 到 {formatNumber(b.to)}</title>
-            {i < bars.length - 1 && <line x1={40 + i * w + Math.max(8, w - 12)} x2={40 + (i + 1) * w} y1={y(b.to)} y2={y(b.to)} stroke="#9ab3a3" strokeDasharray="3 3" />}
-            <rect
-              x={40 + i * w}
-              width={Math.max(8, w - 12)}
-              y={Math.min(y(b.from), y(b.to))}
-              height={Math.max(2, Math.abs(y(b.to) - y(b.from)))}
-              rx="5"
-              fill={
-                b.total ? "#137f68" : b.to >= b.from ? "#67a78d" : "#c8875b"
-              }
-            />
-            <text
-              x={40 + i * w + (w - 12) / 2}
-              y={Math.min(y(b.from), y(b.to)) - 8}
-              textAnchor="middle"
-              fontSize="13"
-              fill="#456151"
-            >
-              {formatNumber(b.total ? b.to : b.to - b.from, true)}
-            </text>
-            <text
-              x={40 + i * w + (w - 12) / 2}
-              y="245"
-              textAnchor="middle"
-              fontSize="13"
-              fill="#5d7467"
-            >
-              {b.name.length > 7 ? b.name.slice(0, 6) + "…" : b.name}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <p>基期 → 各分组增减 → 本期。悬浮查看精确值，点击分组柱或按回车核对来源；超过八组时合并其余组，保留完整差额。</p>
-      <div className="contribution-chips">
-        {result.groups.slice(0, 5).map((g) => (
-          <button
-            className="button subtle"
-            key={g.name}
-            onClick={() => onGroup(g.name)}
-          >
-            {g.name} <ArrowRight size={12} />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 export function Diagnostics({
   dataset,
   profile,
@@ -440,32 +356,10 @@ export function Diagnostics({
             )}
             {result && (
               <>
-                <div className="comparison-kpis">
-                  {[
-                    { label: "基期合计", value: formatNumber(result.previous) },
-                    { label: "本期合计", value: formatNumber(result.current) },
-                    {
-                      label: "变化金额",
-                      value:
-                        (result.delta > 0 ? "+" : "") +
-                        formatNumber(result.delta),
-                    },
-                    {
-                      label: "增长率",
-                      value:
-                        result.growth === null
-                          ? "不适用"
-                          : (result.growth > 0 ? "+" : "") +
-                            formatNumber(result.growth * 100) +
-                            "%",
-                    },
-                  ].map((k) => (
-                    <div key={k.label}>
-                      <small>{k.label}</small>
-                      <strong>{k.value}</strong>
-                    </div>
-                  ))}
-                </div>
+                <DiagnosticSummary result={result} metric={metric} dimension={dimension}
+                  current={periods.current} previous={periods.previous}
+                  unit={profile.fields.find(f => f.name === metric)?.unit}
+                  onInspect={inspect} />
                 {result.warnings.length > 0 && (
                   <details className="diagnostic-warning" open>
                     <summary>
@@ -476,10 +370,10 @@ export function Diagnostics({
                     ))}
                   </details>
                 )}
-                <Waterfall
-                  result={result}
-                  onGroup={(name) => inspect("both", name)}
-                />
+                <DiagnosticCharts key={key} result={result} metric={metric} dimension={dimension}
+                  current={periods.current} previous={periods.previous}
+                  unit={profile.fields.find(f => f.name === metric)?.unit}
+                  onInspect={inspect} />
                 <div className="diagnostic-heading">
                   <h3>全部分组贡献 · {result.groups.length} 组</h3>
                   <button className="text-button" onClick={exportComparison}>

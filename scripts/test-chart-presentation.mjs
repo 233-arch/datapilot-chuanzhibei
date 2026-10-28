@@ -4,7 +4,7 @@ import { transpileModule, ScriptTarget, ModuleKind } from "typescript";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 const out = path.resolve("work/chart-tests"); mkdirSync(out, { recursive: true });
-for (const name of ["data-engine", "chart-presentation"]) {
+for (const name of ["data-engine", "chart-presentation", "diagnostics", "diagnostic-presentation"]) {
   const code = transpileModule(readFileSync(`lib/${name}.ts`, "utf8"), { compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 } }).outputText.replace(/(["'])\.\/([a-z-]+)\1/g, '"./$2.mjs"');
   writeFileSync(path.join(out, name + ".mjs"), code);
 }
@@ -62,5 +62,45 @@ test("category colors remain stable across sorting and chart copies", () => {
   const points = ["食品饮料","数码配件","美妆个护","服装鞋包","家居生活"].map(name=>({name,value:1,count:1}));
   const a=c.chartColors(points), b=c.chartColors([...points].reverse());
   assert.deepEqual(a,b); assert.equal(new Set(a.values()).size,points.length);
+});
+const v = await import(pathToFileURL(path.join(out, "diagnostic-presentation.mjs")));
+const group = (name, previous, current) => ({name, previous, current, delta:current-previous});
+test("waterfall keeps cumulative totals exact across positive and negative crossings", () => {
+  const result = {previous:100, current:20, groups:[group("甲",80,-40), group("乙",20,60)]};
+  const steps = v.waterfallSteps(result);
+  assert.deepEqual(steps.map(s=>[s.from,s.to]),[[0,100],[100,-20],[-20,20],[0,20]]);
+  assert.equal(steps.slice(1,-1).reduce((s,p)=>s+p.value,100),20);
+  assert.equal(steps[0].kind,"previous"); assert.equal(steps.at(-1).kind,"current");
+});
+test("collapsed diagnostic groups cannot masquerade as a real source with the same name", () => {
+  const groups = [group("其余 3 组",10,50), ...Array.from({length:9},(_,i)=>group(String(i),10,10+i))];
+  const result = {previous:100,current:groups.reduce((s,g)=>s+g.current,0),groups};
+  const steps = v.waterfallSteps(result), merged=steps.find(s=>s.kind==="remainder");
+  assert.equal(merged.combined,3); assert.equal(merged.group,undefined);
+  assert.equal(steps.find(s=>s.id==="group:其余 3 组").group.name,"其余 3 组");
+  assert.equal(new Set(steps.map(s=>s.id)).size,steps.length);
+  assert.equal(steps.at(-2).to,result.current);
+});
+test("diagnostic plot domains keep zero and all finite signed values visible", () => {
+  for (const values of [[-500,-20],[-5,0,20],[0,0],[],[NaN,Infinity,12]]) {
+    const [lo,hi] = v.diagnosticDomain(values);
+    assert.ok(Number.isFinite(lo)&&Number.isFinite(hi)&&hi>lo&&lo<=0&&hi>=0);
+    for(const value of values.filter(Number.isFinite)) assert.ok(value>=lo&&value<=hi);
+    const ticks=v.diagnosticTicks([lo,hi]);
+    assert.ok(ticks.includes(0)); assert.ok(ticks.every(t=>Number.isFinite(t)&&t>=lo&&t<=hi));
+  }
+});
+test("diagnostic ranking filters by sign without changing the full calculation", () => {
+  const groups=[group("持平",2,2),group("增加",10,40),group("减少",50,5)];
+  const before=JSON.stringify(groups);
+  assert.deepEqual(v.orderedDiagnosticGroups(groups,"all").map(g=>g.name),["减少","增加","持平"]);
+  assert.deepEqual(v.orderedDiagnosticGroups(groups,"increase").map(g=>g.name),["增加"]);
+  assert.deepEqual(v.orderedDiagnosticGroups(groups,"decrease").map(g=>g.name),["减少"]);
+  assert.equal(JSON.stringify(groups),before);
+});
+test("increase and decrease totals reconcile even when the net change is zero", () => {
+  const groups=[group("甲",0,25),group("乙",30,5),group("丙",5,5)];
+  assert.deepEqual(v.contributionBalance(groups),{increase:25,decrease:-25});
+  assert.deepEqual(v.contributionBalance([]),{increase:0,decrease:0});
 });
 console.log(`Chart presentation: ${count} meaningful checks passed`);
