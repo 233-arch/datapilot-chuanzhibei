@@ -115,7 +115,15 @@ AI方案与创新摘要：
 """
 (handoff / "03_官网填写").mkdir(exist_ok=True)
 (handoff / "03_官网填写/官网填写信息.txt").write_text(details, encoding="utf-8")
-(handoff / "03_官网填写/团队信息待补充.json").write_text(json.dumps(team, ensure_ascii=False, indent=2), encoding="utf-8")
+(handoff / "03_官网填写/团队信息.json").write_text(json.dumps(team, ensure_ascii=False, indent=2), encoding="utf-8")
+# Remove only an untouched legacy generated file, leaving any user edits intact.
+legacy = handoff / "03_官网填写/团队信息待补充.json"
+previous_manifest = handoff / "MANIFEST.json"
+if legacy.exists() and previous_manifest.exists():
+    previous_files = json.loads(previous_manifest.read_text(encoding="utf-8")).get("files", [])
+    recorded = next((item for item in previous_files if item["path"] == legacy.relative_to(handoff).as_posix()), None)
+    if recorded and recorded["sha256"] == hashlib.sha256(legacy.read_bytes()).hexdigest():
+        legacy.unlink()
 readme = f"""数问DataPilot - 疯狂星期四 - 提交材料（不含视频）
 版本：v{version}
 冻结提交：{commit}
@@ -125,7 +133,7 @@ readme = f"""数问DataPilot - 疯狂星期四 - 提交材料（不含视频）
 04是可编辑技术文档、版权依赖说明、录制参考和合成演示样本；05是项目检查与模型评测证据。
 
 视频按你的要求留空，本包不含MP4。当前缺失的非视频检查项：{'、'.join(x for x in remaining if x != 'demoVideo') or '无'}。
-学校、参赛组别、队员与分工须补成真实信息；如无指导老师填写无。补齐后同步README、技术文档和官网，再冻结最终版本。
+团队资料已填写：{field(team.get('school'))}，{field(team.get('group'))}，{members}，指导老师{'、'.join(team.get('advisors') or []) or '无'}。成员实际分工待参赛者确认；提交前与README、技术文档及官网报名记录核对一致，再冻结最终版本。
 检查结果不是主办方认证；本包未执行报名、缴费或官网最终提交。
 """
 (handoff / "00_请先阅读.txt").write_text(readme, encoding="utf-8")
@@ -133,7 +141,7 @@ handoff_manifest = {key: value for key, value in manifest.items() if key != "fil
 handoff_manifest["nonVideoRemainingChecks"] = [x for x in remaining if x != "demoVideo"]
 handoff_manifest["files"] = []
 handoff_paths = sorted(set(selected.values()) | {
-    "03_官网填写/官网填写信息.txt", "03_官网填写/团队信息待补充.json", "00_请先阅读.txt"
+    "03_官网填写/官网填写信息.txt", "03_官网填写/团队信息.json", "00_请先阅读.txt"
 })
 for dest in handoff_paths:
     src = handoff / dest

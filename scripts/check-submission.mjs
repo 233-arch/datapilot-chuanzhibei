@@ -187,7 +187,7 @@ const checkedDate = new Intl.DateTimeFormat("sv-SE", {
 const report = {
   checkedAt: checkedAt.toISOString(),
   sourceCommit: localHead.stdout?.trim() || null,
-  ruleCheckedOn: "2026-10-26",
+  ruleCheckedOn: "2026-10-28",
   ruleUrl: "https://www.boxuegu.com/matchTrack/detail/?id=10037",
   ready: checks.every((c) => c.status === "pass" || c.status === "optional"),
   checks,

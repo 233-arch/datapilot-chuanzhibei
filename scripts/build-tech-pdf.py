@@ -51,13 +51,14 @@ def chrome(canvas,doc):
 target=OUT/'数问DataPilot_技术说明.pdf'
 doc=SimpleDocTemplate(str(target),pagesize=A4,rightMargin=48,leftMargin=48,topMargin=59,bottomMargin=57,title='数问 DataPilot 技术说明',author='疯狂星期四',allowSplitting=True)
 story=[Spacer(1,21),p('数问 DataPilot','title'),p('让数据，回答问题。','subtitle'),p('AI WEB 网页开发挑战赛 · AI 数据分析与可视化方向','small'),Spacer(1,14)]
+story.extend([p('河南农业大学 · B组 · 疯狂星期四','h3'),p('队员：刘宗柯、陈世航、刘兴海　　指导老师：唐琦','small')])
 story.append(p('从一份 Excel / CSV 到一次可核验的探索：自然语言生成分析计划，确定性引擎计算统计结果，图表与报告提供来源和口径。'))
 shot=ROOT/'docs/screenshots/v6-2-readable-desktop.png'
 if shot.exists():
     from PIL import Image as PILImage
     w,h=PILImage.open(shot).size
     story.extend([Spacer(1,12),Image(str(shot),width=499,height=499*h/w),Spacer(1,7),p('图 1：v0.6.2工作台实测界面，使用20,000行合成样本；示例数字用于功能与版式验证。','small')])
-story.extend([Spacer(1,12),p('交付范围','h3'),p('疯狂星期四：上传、质量检查、联动、下钻、异常、情景推演、收藏、字典、连续追问、配置迁移和离线报告。新增多步骤分析、原文引用问答、指标库与诊断恢复；保留Excel导入、周期贡献与后台计算。31题真实计划验证、新功能9项真实调用加1项本机检查均有记录；学校、组别和队员资料待补充，视频由团队另行准备。','small'),PageBreak()])
+story.extend([Spacer(1,12),p('交付范围','h3'),p('疯狂星期四：上传、质量检查、联动、下钻、异常、情景推演、收藏、字典、连续追问、配置迁移和离线报告。新增多步骤分析、原文引用问答、指标库与诊断恢复；保留Excel导入、周期贡献与后台计算。31题真实计划验证、新功能9项真实调用加1项本机检查均有记录；成员实际分工待确认，视频由团队另行准备。','small'),PageBreak()])
 
 lines=(ROOT/'docs/技术文档.md').read_text(encoding='utf-8').splitlines()
 i=0
