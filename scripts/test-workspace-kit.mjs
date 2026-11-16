@@ -5,15 +5,16 @@ import { pathToFileURL } from "node:url";
 import path from "node:path";
 const target = path.resolve("work/kit-tests");
 mkdirSync(target, { recursive: true });
-for (const name of ["data-engine", "agent", "exploration", "workspace-kit"]) {
+for (const name of ["data-engine", "agent", "exploration", "business-rules", "report-bundle", "workspace-kit"]) {
   const source = transpileModule(readFileSync(`lib/${name}.ts`, "utf8"), {
     compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 },
-  }).outputText.replace(/(["'])\.\/(data-engine|exploration)\1/g, '"./$2.mjs"');
+  }).outputText.replace(/(["'])\.\/(data-engine|exploration|business-rules)\1/g, '"./$2.mjs"');
   writeFileSync(path.join(target, `${name}.mjs`), source);
 }
 const e = await import(pathToFileURL(path.join(target, "data-engine.mjs")));
 const a = await import(pathToFileURL(path.join(target, "agent.mjs")));
 const k = await import(pathToFileURL(path.join(target, "workspace-kit.mjs")));
+const reports = await import(pathToFileURL(path.join(target, "report-bundle.mjs")));
 let count = 0;
 async function test(name, fn) {
   await fn();
@@ -250,5 +251,55 @@ await test("Offline report escapes user content and has no network or scripts", 
   assert.ok(
     !/<(?:script|link|iframe)\b|(?:src|href)\s*=\s*["']https?:/i.test(html),
   );
+});
+await test("Report catalogue merges duplicate plans while preserving notes and provenance", () => {
+  const reordered = Object.fromEntries(Object.entries(plan).reverse());
+  const items = reports.collectReportAnalyses(plan, [{ plan: reordered, note: "收藏的业务解释" }], [{ plan, mode: "model" }]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].sources, ["current", "pin", "history"]);
+  assert.equal(items[0].note, "收藏的业务解释");
+  assert.equal(items[0].mode, "model");
+  assert.notEqual(items[0].plan, undefined);
+});
+await test("Report selections omit exactly the chosen plans and cap at 30", () => {
+  const items = reports.collectReportAnalyses(plan, Array.from({ length: 34 }, (_, index) => ({ plan: { ...plan, title: `分析${index}` } })), []);
+  assert.equal(reports.selectReportAnalyses(items, []).length, 30);
+  const selected = reports.selectReportAnalyses(items, items.slice(0, 7).map(item => item.key));
+  assert.equal(selected.length, 28);
+  assert.equal(selected[0].plan.title, "分析6");
+  assert.equal(reports.selectReportAnalyses(items, items.map(item => item.key)).length, 0);
+  assert.throws(() => reports.markdownReport(dataset, profile, [], {}, []), /至少/);
+  assert.throws(() => reports.markdownReport(dataset, profile, items, {}, []), /30/);
+});
+await test("HTML and Markdown share selected figures, notes, dictionary and full-dataset rule counts", () => {
+  const filteredPlan = { ...plan, filters: [{ field: "地区", operator: "eq", value: "华东" }] };
+  const items = reports.collectReportAnalyses(filteredPlan, [{ plan: filteredPlan, note: "业务解释" }], [{ plan: filteredPlan, mode: "model" }]);
+  const rules = [{ id: "required", field: "地区", kind: "required" }];
+  const md = reports.markdownReport(dataset, profile, items, dictionary, rules);
+  const html = k.reportHTML(dataset, profile, items, dictionary, rules);
+  for (const text of [md, html]) for (const expected of ["500", "匹配 4 条 / 有效 4 条", "业务解释", "模型规划", "人民币元", "字段字典", "业务规则检查", "不受"]) assert.ok(text.includes(expected), expected);
+  assert.match(md, /\| 地区 \| 必填 \|.*\| 8 \| 8 \| 0 \| 0 \| 100.0% \|/);
+  assert.ok(html.includes("完整当前数据集（8 条）"));
+  const before = JSON.stringify(dataset);
+  const changed = structuredClone(dataset); changed.rows[0].销售额 = "1000";
+  assert.notEqual(reports.markdownReport(changed, e.profileDataset(changed), items, dictionary, rules), md);
+  assert.equal(JSON.stringify(dataset), before);
+});
+await test("Report distinguishes unconfigured and all-skipped rules and escapes malicious conditions", () => {
+  const data = e.parseCSV('组,金额\nA,\nB,');
+  const p = e.profileDataset(data), items = reports.collectReportAnalyses(e.defaultPlan(p), [], []);
+  const rules = [{ id: "skip", field: "金额", kind: "allowed", values: ['<img src=x onerror=alert(1)>|`'] }];
+  const html = k.reportHTML(data, p, items, {}, rules), md = reports.markdownReport(data, p, items, {}, rules);
+  assert.ok(!html.includes("<img")); assert.ok(html.includes("&lt;img"));
+  assert.ok(html.includes("未检查")); assert.ok(md.includes("未检查"));
+  assert.ok(!md.includes("<img")); assert.ok(!html.includes("100.0%"));
+  assert.ok(k.reportHTML(data, p, items, {}).includes("未配置业务规则"));
+  assert.ok(reports.markdownReport(data, p, items, {}, []).includes("未配置业务规则"));
+});
+await test("Markdown escapes user markup and protects SQL fences", () => {
+  const text = e.reportMarkdown({ ...dataset, name: "<script>x</script>" }, profile, [{ plan: { ...plan, title: "[click](https://example.invalid)" }, note: "<img src=x>", result: { ...e.executePlan(dataset, profile, plan), sql: "SELECT ```\n<script>x</script>" } }]);
+  assert.ok(text.includes("&#60;script&#62;")); assert.ok(text.includes("&#91;click&#93;"));
+  assert.ok(text.includes("````sql\nSELECT ```\n<script>x</script>\n````"));
+  assert.ok(!text.includes("<img src=x>"));
 });
 console.log(`\n${count} workspace kit checks passed.`);

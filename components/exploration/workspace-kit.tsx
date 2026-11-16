@@ -136,12 +136,14 @@ export function DictionaryEditor({
   );
 }
 export function DeliveryCenter({
+  analysisCount,
   onHTML,
   onPreview,
   onMarkdown,
   onRecipe,
   onImport,
 }: {
+  analysisCount: number;
   onHTML: () => void;
   onPreview: () => void;
   onMarkdown: () => void;
@@ -152,7 +154,7 @@ export function DeliveryCenter({
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
-  async function perform(action: () => Promise<void>) {
+  async function perform(action: () => void | Promise<void>) {
     setBusy(true);
     setError("");
     setMessage("");
@@ -169,23 +171,23 @@ export function DeliveryCenter({
       <div className="kit-callout">
         <FileText size={21} />
         <p>
-          将当前分析、收藏和历史结果整理成可核验的成果。HTML
+          本次已选择 {analysisCount} 项分析，可在洞察报告页调整内容。HTML
           报告内置图表、表格、筛选范围与口径，可离线阅读并用浏览器打印为 PDF。
         </p>
       </div>
       <div className="delivery-grid">
-        <button className="delivery-option" onClick={onHTML}>
+        <button className="delivery-option" disabled={busy || !analysisCount} onClick={() => void perform(onHTML)}>
           <FileText size={24} />
           <strong>可打印 HTML 报告</strong>
           <span>离线图表与表格 · 无外部脚本</span>
         </button>
-        <button className="delivery-option" onClick={onMarkdown}>
+        <button className="delivery-option" disabled={busy || !analysisCount} onClick={() => void perform(onMarkdown)}>
           <Download size={24} />
           <strong>Markdown 报告</strong>
           <span>便于编辑和纳入技术文档</span>
         </button>
       </div>
-      <button className="button subtle" onClick={onPreview}>
+      <button className="button subtle" disabled={busy || !analysisCount} onClick={() => void perform(onPreview)}>
         预览当前报告
       </button>
       <div className="recipe-section">

@@ -10,6 +10,7 @@ import {
   groupFilter,
 } from "./data-engine";
 import { type PinnedInsight } from "./exploration";
+import { ruleReportHTML, type BusinessRule } from "./business-rules";
 export const definitionSchema = z
   .object({
     description: z.string().max(300),
@@ -235,6 +236,8 @@ export function reportHTML(
   profile: Profile,
   analyses: { plan: Plan; note?: string; mode?: string }[],
   dictionary: Dictionary,
+  rules: BusinessRule[] = [],
+  meta?: { title: string; version: string; review: string },
 ): string {
   const e = escapeHtml;
   const sections = analyses
@@ -255,7 +258,7 @@ export function reportHTML(
       )}<br>匹配 ${result.matchedRows} 条 / 有效 ${result.validRows} 条 / 排除 ${result.excluded} 条 · 单位：${e(result.unit || "未指定")}</p>${result.points.length ? `<svg role="img" aria-label="${e(plan.title)}" viewBox="0 0 680 ${result.points.length * 31 + 12}" xmlns="http://www.w3.org/2000/svg">${graph}</svg><p class="hint">条形长度表示绝对值，数值标签保留正负号；负值用棕色标记。图表仅展示当前 Top N。</p>` : ""}<table><thead><tr><th>${e(plan.groupBy)}</th><th>${e(plan.aggregate === "count" ? "记录数" : plan.metric)}</th><th>有效记录</th></tr></thead><tbody>${result.points.map((p) => `<tr><td>${e(p.name)}</td><td>${e(p.value.toLocaleString("zh-CN", { maximumFractionDigits: 4 }))}</td><td>${p.count}</td></tr>`).join("")}</tbody></table><details><summary>查看计算口径（示意 SQL）</summary><pre>${e(result.sql)}</pre></details></section>`;
     })
     .join("");
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><title>${e(dataset.name)} · 数问分析报告</title><style>body{margin:0;background:#f4f7f2;color:#243c32;font:15px/1.8 system-ui,'Microsoft YaHei',sans-serif}main{max-width:900px;margin:40px auto;padding:0 24px}header,section{background:white;padding:30px;border:1px solid #dfe8dc;border-radius:12px;margin:24px 0;overflow-wrap:anywhere}h1{font-size:32px}h2{font-size:22px;color:#0b715f}.eyebrow,.hint{font-size:12px;color:#64796b}.stats{display:flex;gap:30px;flex-wrap:wrap}.stats strong{display:block;font-size:25px}.scope,blockquote{background:#f0f6ec;padding:15px;border-radius:6px}svg{width:100%;max-height:950px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:9px;text-align:left;border-bottom:1px solid #dde6d8}th{background:#eef4e9}pre{white-space:pre-wrap;font-size:12px;background:#f7faf5;padding:16px}footer{font-size:12px;color:#627568;padding:20px 0}@media print{body{background:white}main{margin:0;max-width:none;padding:0}header,section{border-radius:0;break-inside:avoid;padding:18px}details{display:block}details pre{display:block}a{color:inherit}}@page{size:A4;margin:16mm}</style></head><body><main><header><p class="eyebrow">数问 DATAPILOT · 可核验的数据分析</p><h1>${e(dataset.name)}<br>分析报告</h1><p>生成时间：${e(new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }))}（北京时间）<br>来源：${dataset.source === "demo" ? "固定种子合成样本" : "用户上传文件"}</p><div class="stats"><div><strong>${profile.rowCount}</strong>原始记录</div><div><strong>${profile.columnCount}</strong>字段</div><div><strong>${profile.completeness.toFixed(2)}%</strong>完整率</div><div><strong>${profile.duplicates}</strong>完全重复</div></div></header>${sections}${
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><title>${e(meta?.title || dataset.name)} · 数问分析报告</title><style>body{margin:0;background:#f4f7f2;color:#243c32;font:15px/1.8 system-ui,'Microsoft YaHei',sans-serif}main{max-width:900px;margin:40px auto;padding:0 24px}header,section{background:white;padding:30px;border:1px solid #dfe8dc;border-radius:12px;margin:24px 0;overflow-wrap:anywhere}h1{font-size:32px}h2{font-size:22px;color:#0b715f}.eyebrow,.hint{font-size:14px;color:#64796b}.stats{display:flex;gap:30px;flex-wrap:wrap}.stats strong{display:block;font-size:25px}.scope,blockquote{white-space:pre-wrap;background:#f0f6ec;padding:15px;border-radius:6px}svg{width:100%;max-height:950px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:9px;text-align:left;border-bottom:1px solid #dde6d8}th{background:#eef4e9}pre{white-space:pre-wrap;font-size:12px;background:#f7faf5;padding:16px}footer{font-size:12px;color:#627568;padding:20px 0}@media print{body{background:white}main{margin:0;max-width:none;padding:0}header,section{border-radius:0;break-inside:avoid;padding:18px}details{display:block}details pre{display:block}a{color:inherit}}@page{size:A4;margin:16mm}</style></head><body><main><header><p class="eyebrow">数问 DATAPILOT · 可核验的数据分析</p><h1>${e(meta?.title || dataset.name + " · 分析报告")}</h1>${meta ? `<p class="scope">数据标记：${e(meta.version)} · ${e(meta.review)}</p>` : ""}<p>生成时间：${e(new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }))}（北京时间）<br>来源：${dataset.source === "demo" ? "固定种子合成样本" : "用户上传文件"}</p><div class="stats"><div><strong>${profile.rowCount}</strong>原始记录</div><div><strong>${profile.columnCount}</strong>字段</div><div><strong>${profile.completeness.toFixed(2)}%</strong>完整率</div><div><strong>${profile.duplicates}</strong>完全重复</div></div></header>${sections}${
     Object.keys(dictionary).length
       ? `<section><h2>字段字典</h2><table><tr><th>字段</th><th>含义 / 别名</th><th>单位</th></tr>${Object.entries(
           dictionary,
@@ -266,5 +269,5 @@ export function reportHTML(
           )
           .join("")}</table></section>`
       : ""
-  }<footer>本报告的数值和图表来自确定性聚合，不由模型估算。缺失及无效指标不参与数值聚合；重复记录保留，除非主动清洗。描述统计不推断因果，不构成预测。报告包含聚合数据与分类标签，分享前请核对权限。浏览器可使用打印功能保存为 PDF。</footer></main></body></html>`;
+  }${ruleReportHTML(dataset, rules)}<footer>本报告的数值和图表来自确定性聚合，不由模型估算。缺失及无效指标不参与数值聚合；重复记录保留，除非主动清洗。描述统计不推断因果，不构成预测。报告包含聚合数据与分类标签，分享前请核对权限。浏览器可使用打印功能保存为 PDF。</footer></main></body></html>`;
 }

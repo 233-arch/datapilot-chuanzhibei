@@ -11,11 +11,12 @@ for (const name of [
   "import-sheet",
   "explainer",
   "workspace-kit",
+  "business-rules",
 ]) {
   const code = transpileModule(readFileSync("lib/" + name + ".ts", "utf8"), {
     compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 },
   })
-    .outputText.replace(/(["'])\.\/(data-engine|diagnostics)\1/g, '"./$2.mjs"')
+    .outputText.replace(/(["'])\.\/(data-engine|diagnostics|business-rules)\1/g, '"./$2.mjs"')
     .replace(/from 'zod'/g, 'from "zod"');
   writeFileSync(path.join(out, name + ".mjs"), code);
 }

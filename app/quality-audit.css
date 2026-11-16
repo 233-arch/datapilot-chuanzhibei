@@ -1,0 +1,47 @@
+.quality-audit { margin-top:24px; overflow:hidden; }
+.quality-audit h3 { display:flex; align-items:center; gap:9px; }
+.quality-audit .card-heading { align-items:flex-start; }
+.quality-audit .card-heading p { max-width:640px; }
+.quality-audit-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 22px 20px; }
+.quality-audit-stats button { display:flex; flex-direction:column; align-items:flex-start; gap:5px; border:1px solid #e2e9e6; background:#f8faf9; border-radius:12px; padding:16px; text-align:left; color:#48665a; }
+.quality-audit-stats button[aria-pressed=true] { border-color:#16846b; background:#e9f5ef; box-shadow:inset 0 0 0 1px #16846b; }
+.quality-audit-stats strong { font-size:28px; color:#203f35; font-variant-numeric:tabular-nums; }
+.quality-audit-stats span,.quality-audit-stats small { font-size:14px; }
+.quality-audit-toolbar { display:flex; flex-wrap:wrap; gap:16px; align-items:end; padding:18px 22px; border-block:1px solid #e8eeeb; background:#fbfcfc; }
+.quality-audit-toolbar label { display:grid; gap:7px; font-size:14px; color:#49655b; flex:1 1 200px; max-width:320px; }
+.quality-audit-toolbar select { min-width:0; width:100%; padding:10px; min-height:42px; border:1px solid #d8e3dd; border-radius:7px; background:white; font-size:15px; }
+.quality-audit-toolbar>span { margin-left:auto; font-size:14px; padding-bottom:10px; color:#516b61; }
+.quality-audit .data-table { min-width:680px; }
+.quality-audit .data-table td { vertical-align:top; line-height:1.8; }
+.quality-audit .data-table td:nth-child(2) strong { display:block; max-width:200px; overflow-wrap:anywhere; }
+.quality-audit .data-table td:nth-child(4) { min-width:220px; max-width:360px; white-space:normal; }
+.quality-issue-value { display:block; max-width:180px; white-space:pre-wrap; overflow-wrap:anywhere; max-height:84px; overflow:auto; }
+.quality-issue-tag { display:inline-block; padding:2px 8px; margin-bottom:4px; border-radius:5px; background:#fff2db; color:#865b17; font-size:13px; }
+.quality-issue-tag.invalid { background:#ffede8; color:#a2472e; }
+.quality-issue-tag.duplicate { background:#eaf0fa; color:#416398; }
+.quality-audit-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 22px; font-size:14px; color:#526d61; }
+.quality-audit-footer nav { display:flex; gap:12px; align-items:center; white-space:nowrap; }
+.quality-audit-empty { display:flex; flex-direction:column; align-items:center; gap:12px; padding:38px 22px; color:#2b7760; text-align:center; }
+.quality-audit-empty p { color:#61776c; font-size:14px; }
+.quality-audit-notice { padding:12px 22px; background:#f3f8f5; font-size:14px; line-height:1.8; }
+.quality-record { margin:0 22px 22px; padding:18px; border:1px solid #bcdcca; border-radius:12px; background:#f5faf7; }
+.quality-record header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.quality-record dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+.quality-record dl>div { background:white; padding:12px; border:1px solid #e2ebe5; border-radius:8px; min-width:0; }
+.quality-record dt { font-size:14px; color:#63776d; margin-bottom:6px; overflow-wrap:anywhere; }
+.quality-record dd { font-size:15px; white-space:pre-wrap; overflow-wrap:anywhere; max-height:180px; overflow:auto; }
+.clean-preview { margin:18px 0; border:1px solid #dce9e1; border-radius:12px; padding:16px; background:#f8fbf9; }
+.clean-preview h3 { font-size:17px; margin-bottom:12px; }
+.clean-preview p { font-size:14px; line-height:1.8; color:#577064; margin-top:12px; }
+.clean-preview>strong { display:block; margin-top:12px; font-size:14px; }
+@media(max-width:600px) {
+ .quality-audit-stats { gap:8px; padding:0 14px 14px; }
+ .quality-audit-stats button { padding:12px 9px; }
+ .quality-audit-stats strong { font-size:24px; }
+ .quality-audit .card-heading { flex-direction:column; }
+ .quality-audit-toolbar { padding:14px; gap:12px; }
+ .quality-audit-toolbar label { max-width:none; }
+ .quality-audit-footer { flex-direction:column; align-items:flex-start; padding:14px; }
+ .quality-record { margin:0 14px 14px; padding:12px; }
+ .quality-record dl { grid-template-columns:1fr; }
+}

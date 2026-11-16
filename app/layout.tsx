@@ -8,6 +8,16 @@ import "./intelligence.css";
 import "./readability.css";
 import "./charts.css";
 import "./diagnostic-charts.css";
+import "./workspace-polish.css";
+import "./data-preview.css";
+import "./quality-audit.css";
+import "./page-navigation.css";
+import "./business-rules.css";
+import "./report-center.css";
+import "./dataset-library.css";
+import "./product-workflows.css";
+import "./product-theme.css";
+import "./product-patterns.css";
 
 export const metadata: Metadata = {
   title: "数问 DataPilot · 让数据回答问题",

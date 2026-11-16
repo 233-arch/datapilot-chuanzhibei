@@ -7,6 +7,7 @@ const out = path.resolve("work/intelligence-tests");
 mkdirSync(out, { recursive: true });
 for (const name of [
   "data-engine",
+  "business-rules",
   "diagnostics",
   "workbench",
   "knowledge",

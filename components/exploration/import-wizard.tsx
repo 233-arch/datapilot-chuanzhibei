@@ -23,7 +23,7 @@ export function ImportWizard({
   onClose,
 }: {
   file: File;
-  onImport: (dataset: Dataset, profile: Profile) => void;
+  onImport: (dataset: Dataset, profile: Profile) => void | Promise<void>;
   onClose: () => void;
 }) {
   const [sheets, setSheets] = useState<Sheet[]>([]),
@@ -34,6 +34,7 @@ export function ImportWizard({
     [error, setError] = useState(""),
     [phase, setPhase] = useState("正在后台解析文件…");
   const abort = useRef<AbortController | null>(null);
+  const committing = useRef(false);
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -42,6 +43,7 @@ export function ImportWizard({
   }, []);
   function keyboard(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
+      if (committing.current) return;
       abort.current?.abort();
       onClose();
     }
@@ -127,10 +129,13 @@ export function ImportWizard({
         },
         controller.signal,
       );
-      onImport(result.dataset, result.profile);
+      committing.current = true;
+      setPhase("正在保留当前工作并完成导入…");
+      await onImport(result.dataset, result.profile);
     } catch (e) {
       if ((e as Error).name !== "AbortError") setError((e as Error).message);
     } finally {
+      committing.current = false;
       if (!controller.signal.aborted) setBusy(false);
     }
   }
@@ -157,6 +162,7 @@ export function ImportWizard({
             className="icon-button"
             aria-label="关闭导入向导"
             onClick={() => {
+              if (committing.current) return;
               abort.current?.abort();
               onClose();
             }}
@@ -171,6 +177,7 @@ export function ImportWizard({
             <button
               className="button subtle"
               onClick={() => {
+                if (committing.current) return;
                 abort.current?.abort();
                 onClose();
               }}
@@ -263,7 +270,7 @@ export function ImportWizard({
               预览前五行。自动跳过空白行；表头必须非空且唯一。Excel日期按单元格格式读取，百分比数值保留底层小数；文本百分比在选择“数值”后转换。公式仅读取文件中已有缓存值，导入不会重新计算公式。
             </p>
             <div className="diagnostic-heading">
-              <small>导入将替换当前数据集及其分析记录、字典与收藏。</small>
+              <small>导入前自动保留当前工作，可在“我的数据集”恢复；保存失败时不切换数据。</small>
               <button className="button primary" onClick={confirm}>
                 确认导入 <ArrowRight size={14} />
               </button>

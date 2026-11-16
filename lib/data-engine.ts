@@ -89,7 +89,7 @@ export function numeric(value: Cell): number | null {
   const n = Number(v.replace(/,/g, ""));
   return Number.isFinite(n) ? n : null;
 }
-function isDate(v: Cell): boolean {
+export function isDate(v: Cell): boolean {
   if (typeof v !== "string") return false;
   const m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (m) {
@@ -100,7 +100,9 @@ function isDate(v: Cell): boolean {
       d.getUTCDate() === Number(m[3])
     );
   }
-  return /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isFinite(Date.parse(v));
+  // Date.parse normalizes impossible ISO calendar dates in some runtimes.
+  const iso = v.match(/^(\d{4}-\d{2}-\d{2})T/);
+  return Boolean(iso && isDate(iso[1]) && Number.isFinite(Date.parse(v)));
 }
 export function dateBucket(v: string, grain: "day" | "month"): string {
   const m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
@@ -202,7 +204,7 @@ export function profileDataset(dataset: Dataset): Profile {
       name,
       type,
       missing: values.length - present.length,
-      invalid: type === "number" ? present.length - nums.length : 0,
+      invalid: type === "number" ? present.length - nums.length : type === "date" ? present.filter(v => !isDate(v)).length : 0,
       unique: count.size,
       topValues: [...count]
         .sort((a, b) => b[1] - a[1])
@@ -607,6 +609,7 @@ export function cleanDataset(
   dataset: Dataset,
   options: { deduplicate: boolean; trim: boolean; fillMissing: boolean },
 ): Dataset {
+  const types = Object.fromEntries(profileDataset(dataset).fields.map(field => [field.name, field.type]));
   const seen = new Set<string>();
   const rows: DataRow[] = [];
   for (const original of dataset.rows) {
@@ -614,7 +617,7 @@ export function cleanDataset(
     dataset.columns.forEach((c) => {
       const value = original[c];
       row[c] = options.trim && typeof value === "string" ? value.trim() : value;
-      if (options.fillMissing && (row[c] === null || row[c] === ""))
+      if (options.fillMissing && types[c] === "text" && (row[c] === null || row[c] === ""))
         row[c] = "未填写";
     });
     const key = JSON.stringify(dataset.columns.map((c) => row[c]));
@@ -622,12 +625,20 @@ export function cleanDataset(
     seen.add(key);
     rows.push(row);
   }
-  return { ...dataset, id: `clean-${Date.now()}`, rows };
+  return { ...dataset, id: `clean-${Date.now()}`, types, rows };
 }
 export function reportMarkdown(
   dataset: Dataset,
   profile: Profile,
-  analyses: { plan: Plan; result: AnalysisResult }[],
+  analyses: { plan: Plan; result: AnalysisResult; note?: string; mode?: string }[],
 ): string {
-  return `# ${dataset.name} · 数据分析报告\n\n生成时间：${new Date().toISOString()}\n\n## 数据概况\n\n- 数据来源：${dataset.source === "demo" ? "内置合成演示数据" : "用户上传数据"}\n- 记录数：${profile.rowCount}\n- 字段数：${profile.columnCount}\n- 缺失单元格：${profile.missing}\n- 重复记录：${profile.duplicates}\n- 完整率：${profile.completeness.toFixed(2)}%\n\n## 分析结果\n\n${analyses.map(({ plan, result }, i) => `### ${i + 1}. ${plan.title}\n\n${result.summary}\n\n| ${plan.groupBy} | ${plan.aggregate === "count" ? "记录数" : plan.metric} |\n| --- | ---: |\n${result.points.map((p) => `| ${p.name.replace(/\|/g, "/").replace(/\r?\n/g, " ")} | ${p.value.toFixed(2)} |`).join("\n")}\n\n\`\`\`sql\n${result.sql}\n\`\`\`\n`).join("\n")}\n## 口径与限制\n\n- 计算结果由确定性聚合引擎生成，非模型估算。\n- 指标缺失和非法数值不参与数值聚合；分组字段缺失显示为“未填写”。\n- 保留原始重复记录，除非用户主动执行清洗。\n- 趋势仅描述关联，不推断因果；导出前请核对业务口径。\n`;
+  const safe = (value: unknown) => String(value ?? "").replace(/[&<>|`\\\[\]#*]/g, c => `&#${c.charCodeAt(0)};`).replace(/[\r\n]/g, " ");
+  const filterLabels = { eq: "等于", contains: "包含", gte: "不小于 / 起始", lte: "不大于 / 截止", missing: "为空", bucket: "时间分组", group: "图表分组" };
+  const sections = analyses.map(({ plan, result, note, mode }, i) => {
+    // A longer fence prevents field names containing backticks from closing the code block.
+    const fence = "`".repeat(Math.max(3, ...(result.sql.match(/`+/g) || []).map(run => run.length + 1)));
+    const scope = filtersForPlan(plan).map(f => `${f.field} ${filterLabels[f.operator]} ${f.value ?? ""}`).join(" 且 ") || "全部记录";
+    return `### ${i + 1}. ${safe(plan.title)}\n\n${mode === "model" ? "模型规划" : mode === "demo" ? "本地规则" : "用户选择口径"} · 本地计算\n\n${safe(result.summary)}\n\n${note ? `> ${safe(note)}\n\n` : ""}筛选范围：${safe(scope)}\n\n匹配 ${result.matchedRows} 条 / 有效 ${result.validRows} 条 / 排除 ${result.excluded} 条 · 单位：${safe(result.unit || "未指定")}\n\n| ${safe(plan.groupBy)} | ${safe(plan.aggregate === "count" ? "记录数" : plan.metric)} | 有效记录 |\n| --- | ---: | ---: |\n${result.points.map(p => `| ${safe(p.name)} | ${p.value.toFixed(2)} | ${p.count} |`).join("\n")}\n\n${fence}sql\n${result.sql}\n${fence}\n`;
+  }).join("\n");
+  return `# ${safe(dataset.name)} · 数据分析报告\n\n生成时间：${new Date().toISOString()}\n\n## 数据概况\n\n- 数据来源：${dataset.source === "demo" ? "内置合成演示数据" : "用户上传数据"}\n- 记录数：${profile.rowCount}\n- 字段数：${profile.columnCount}\n- 缺失单元格：${profile.missing}\n- 重复记录：${profile.duplicates}\n- 完整率：${profile.completeness.toFixed(2)}%\n\n## 分析结果\n\n${sections}\n## 口径与限制\n\n- 计算结果由确定性聚合引擎生成，非模型估算。\n- 指标缺失和非法数值不参与数值聚合；分组字段缺失显示为“未填写”。\n- 保留原始重复记录，除非用户主动执行清洗。\n- 图表与表格仅包含当前 Top N；每项分析保留自己的筛选条件。\n- 趋势仅描述关联，不推断因果；导出前请核对业务口径。\n`;
 }

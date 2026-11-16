@@ -13,6 +13,8 @@ export type EvidenceSelection = {
   dataset: Dataset;
   plan?: Plan;
   group?: string;
+  sourceRow?: number;
+  description?: string;
 };
 export function EvidenceView({
   selection,
@@ -53,13 +55,13 @@ export function EvidenceView({
           <FileSearch size={16} />
           <strong>{dataset.rows.length.toLocaleString()}</strong> 条来源记录
         </span>
-        <span>
+        {plan && <span>
           <ShieldCheck size={15} />
           {valid.toLocaleString()} 条参与指标计算
-        </span>
+        </span>}
       </div>
       <p className="evidence-caption">
-        这里展示当前筛选和图表分组对应的原始记录，包含被排除的缺失指标，方便核对口径。
+        {selection.description || "这里展示当前筛选和图表分组对应的原始记录，包含被排除的缺失指标，方便核对口径。"}
       </p>
       <div className="evidence-toolbar">
         <div className="search-box">
@@ -126,7 +128,7 @@ export function EvidenceView({
           <tbody>
             {rows.slice((page - 1) * 8, page * 8).map((row, index) => (
               <tr key={index}>
-                <td>{(page - 1) * 8 + index + 1}</td>
+                <td>{selection.sourceRow ?? (page - 1) * 8 + index + 1}</td>
                 {dataset.columns.map((c) => (
                   <td key={c} className={row[c] === null ? "missing-cell" : ""}>
                     {row[c] === null ? <span>空值</span> : String(row[c])}

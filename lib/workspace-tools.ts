@@ -9,12 +9,14 @@ import {
   type WorkflowState,
 } from "./workbench";
 import { type KnowledgeDocument, validateDocuments } from "./knowledge";
+import { restoreRules, type BusinessRule } from "./business-rules";
 export type WorkspaceTools = {
   datasetId: string;
   diagnostic: DiagnosticState;
   metrics: SavedMetric[];
   documents: KnowledgeDocument[];
   workflow: WorkflowState;
+  rules: BusinessRule[];
 };
 export function defaultTools(
   dataset: Dataset,
@@ -26,6 +28,7 @@ export function defaultTools(
     metrics: [],
     documents: [],
     workflow: { question: "", plan: null },
+    rules: [],
   };
 }
 export function restoreTools(
@@ -67,5 +70,6 @@ export function restoreTools(
     metrics,
     documents,
     workflow: restoreWorkflow(v.workflow, profile),
+    rules: restoreRules(v.rules, dataset.columns),
   };
 }
