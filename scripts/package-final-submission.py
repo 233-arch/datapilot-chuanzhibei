@@ -82,7 +82,7 @@ def main():
     source_dir = dest / "04_源码与历史"
     source_dir.mkdir()
     source_zip = source_dir / f"{prefix}源码_v{version}.zip"
-    subprocess.run(["git", "archive", "--format=zip", "--output", str(source_zip), head], cwd=ROOT, check=True)
+    subprocess.run(["git", "-c", "core.autocrlf=false", "archive", "--format=zip", "--output", str(source_zip), head], cwd=ROOT, check=True)
     source_files = []
     with zipfile.ZipFile(source_zip) as z:
         assert z.testzip() is None
