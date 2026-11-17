@@ -124,7 +124,7 @@ for specification in DATA["documents"]:
     doc.core_properties.author = "疯狂星期四"
     doc.core_properties.subject = f"DataPilot v{DATA['version']} 本地作品材料"
     for key in ["created", "modified"]:
-        setattr(doc.core_properties, key, datetime(2026, 11, 16, tzinfo=timezone.utc))
+        setattr(doc.core_properties, key, datetime.fromisoformat(DATA["date"]).replace(tzinfo=timezone.utc))
     sec.header.paragraphs[0].text = f"数问 DataPilot    v{DATA['version']}    {DATA['date']}"
     footer = sec.footer.paragraphs[0]
     footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
