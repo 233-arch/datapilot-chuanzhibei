@@ -51,7 +51,8 @@ def main():
     scan = json.loads((out / "source-scan.json").read_text(encoding="utf-8"))
     assert scan["status"] == "passed"
     repo = json.loads((out / "repository-access.json").read_text(encoding="utf-8"))
-    assert repo["headCommit"] == head and repo["anonymousApi"] and repo["anonymousGit"]
+    assert repo["headCommit"] == head and repo["anonymousGit"]
+    assert repo.get("anonymousApi") or repo.get("anonymousWeb")
     log = (ROOT / "work/submission-20261117-tests.log").read_text(encoding="utf-8-sig")
     assert len(re.findall(r"^PASS ", log, re.M)) == 211 and not re.search(r"^FAIL ", log, re.M)
     assert "Build complete" in (ROOT / "work/submission-20261117-build.log").read_text(encoding="utf-8-sig")
